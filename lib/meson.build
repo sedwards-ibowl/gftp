@@ -27,7 +27,8 @@ libgftp = static_library(
     c_args: [
         f'-DSHARE_DIR="@datadir@/gftp"',
 	    f'-DLOCALE_DIR="@datadir@/locale"',
-        f'-DDOC_DIR="@docdir@"'
+        f'-DDOC_DIR="@docdir@"',
+        '-DHAVE_GRANTPT'  # Enable Unix98 PTY support for macOS
     ],
     dependencies: [glib, pthread, ssl],
     install: false

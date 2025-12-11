@@ -25,6 +25,11 @@
 #include "options.h"
 #include <fnmatch.h>
 
+#ifdef HAVE_COREFOUNDATION
+#include <CoreFoundation/CoreFoundation.h>
+#include <limits.h>
+#endif
+
 char * BASE_CONF_DIR = NULL;
 char * CONFIG_FILE = NULL;
 char * BOOKMARKS_FILE = NULL;
