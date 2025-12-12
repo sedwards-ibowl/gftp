@@ -177,6 +177,19 @@ _gftp_force_close (GtkWidget * widget, gpointer data)
 
 
 static void
+_gftp_gtk_signal_handler (int signo)
+{
+  /* For GTK applications, we need to quit the GTK main loop properly
+     instead of just calling exit(). Call the cleanup function which
+     saves settings and then exits. */
+  if (signo == SIGINT)
+    {
+      _gftp_exit (NULL, NULL);
+    }
+}
+
+
+static void
 _gftp_menu_exit (GtkWidget * widget, gpointer data)
 {
   if (!_gftp_try_close (widget, NULL, data))
@@ -1479,6 +1492,10 @@ main (int argc, char **argv)
 
   gftpui_common_init (&argc, &argv, ftp_log);
   gftpui_common_child_process_done = 0;
+
+  /* Override the common signal handler with GTK-specific one that properly
+     quits the GTK main loop instead of calling exit() directly */
+  signal (SIGINT, _gftp_gtk_signal_handler);
 
   gdk_threads_init();
   GDK_THREADS_ENTER ();

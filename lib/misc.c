@@ -25,6 +25,11 @@
 #include "options.h"
 #include <fnmatch.h>
 
+#ifdef HAVE_COREFOUNDATION
+#include <CoreFoundation/CoreFoundation.h>
+#include <limits.h>
+#endif
+
 char * BASE_CONF_DIR = NULL;
 char * CONFIG_FILE = NULL;
 char * BOOKMARKS_FILE = NULL;
@@ -966,10 +971,37 @@ void gftp_locale_init (void)
 {
   DEBUG_PRINT_FUNC
 #ifdef HAVE_GETTEXT
+  char *locale_dir = NULL;
+
   setlocale (LC_ALL, "");
   textdomain ("gftp");
-  bindtextdomain ("gftp", LOCALE_DIR);
+
+#ifdef HAVE_COREFOUNDATION
+  /* On macOS, check if running from an app bundle and use bundle's Resources directory */
+  CFBundleRef bundle = CFBundleGetMainBundle();
+  if (bundle) {
+    CFURLRef resourceURL = CFBundleCopyResourcesDirectoryURL(bundle);
+    if (resourceURL) {
+      char path[PATH_MAX];
+      if (CFURLGetFileSystemRepresentation(resourceURL, TRUE, (UInt8 *)path, PATH_MAX)) {
+        locale_dir = g_build_filename(path, "locale", NULL);
+        /* Verify the locale directory exists before using it */
+        if (!g_file_test(locale_dir, G_FILE_TEST_IS_DIR)) {
+          g_free(locale_dir);
+          locale_dir = NULL;
+        }
+      }
+      CFRelease(resourceURL);
+    }
+  }
+#endif /* HAVE_COREFOUNDATION */
+
+  /* Fall back to compile-time location if not in bundle or bundle path doesn't exist */
+  bindtextdomain ("gftp", locale_dir ? locale_dir : LOCALE_DIR);
   bind_textdomain_codeset ("gftp", "UTF-8");
+
+  if (locale_dir)
+    g_free(locale_dir);
 #endif /* HAVE_GETTEXT */
   // XDG SPEC (XDG_CONFIG_HOME defaults to $HOME/.config/ + gftp)
   BASE_CONF_DIR = g_build_filename (g_get_user_config_dir(), "gftp", NULL);

@@ -37,6 +37,15 @@ if get_option('ssl') and ssl.found()
     libdeps += ssl
 endif
 
+# On macOS, add CoreFoundation for app bundle support
+if host_machine.system() == 'darwin'
+    corefoundation = dependency('appleframeworks', modules: ['CoreFoundation'], required: false)
+    if corefoundation.found()
+        libdeps += corefoundation
+        add_project_arguments('-DHAVE_COREFOUNDATION', language:'c')
+    endif
+endif
+
 gtk_dep = []
 if get_option('gtkport')
     if get_option('gtk3')
