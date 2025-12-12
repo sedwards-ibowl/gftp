@@ -83,6 +83,73 @@ open gFTP.app
 
 See `QUICK_START.md` for detailed testing procedures.
 
+### Creating Distribution Packages
+
+The repository includes scripts for creating distributable packages:
+
+#### macOS DMG
+
+```bash
+# Build and install to temporary location
+meson setup build -Dgtk2=false -Dgtk3=true
+ninja -C build
+DESTDIR="$(pwd)/install-root" ninja -C build install
+
+# Create app bundle
+INSTALL_PREFIX="$(pwd)/install-root/usr/local" ./create_app_bundle.sh
+
+# Create DMG for distribution
+./create_dmg.sh
+```
+
+This creates `gFTP-{version}-{git-rev}-macOS.dmg` with the app bundle and installation instructions.
+
+#### Linux Portable Build
+
+```bash
+# See docs/create_portable_gftp.sh for creating portable Linux builds
+```
+
+## CI/CD and Releases
+
+This repository uses GitHub Actions for continuous integration and automated releases.
+
+### Workflows
+
+- **CI** (`.github/workflows/ci.yml`) - Runs on every push
+  - Code quality checks
+  - Build with various configurations
+  - Installation verification
+
+- **Build** (`.github/workflows/build.yml`) - Creates build artifacts
+  - Linux builds (GTK2 and GTK3)
+  - macOS app bundle and DMG
+  - Text-only builds
+
+- **Release** (`.github/workflows/release.yml`) - Creates GitHub releases
+  - Automatically triggered by version tags (e.g., `v2.9.1b`)
+  - Builds and uploads binaries for all platforms
+  - Generates release notes
+
+### Creating a Release
+
+To create a new release:
+
+```bash
+# Create and push a version tag
+git tag -a v2.9.2 -m "Release version 2.9.2"
+git push origin v2.9.2
+```
+
+The release workflow will automatically:
+1. Create a GitHub release with generated notes
+2. Build macOS DMG with signed app bundle (if certificates available)
+3. Build Linux binaries for GTK2 and GTK3
+4. Create source tarball
+5. Upload all artifacts to the release
+
+See `.github/README.md` for detailed CI/CD documentation.
+
 ## Running
 
 ### GTK+ Interface
