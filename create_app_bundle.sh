@@ -76,6 +76,43 @@ if [ -d "$INSTALL_PREFIX/share/pixmaps" ]; then
     cp -R "$INSTALL_PREFIX/share/pixmaps" "$BUNDLE_NAME/Contents/Resources/"
 fi
 
+# Find and convert app icon to ICNS
+info "Setting up application icon..."
+ICON_ICNS=""
+if [ -f "$SCRIPT_DIR/icons/scalable/gftp.svg" ]; then
+    info "Found SVG icon, converting to ICNS..."
+    TEMP_ICONSET=$(mktemp -d)/gftp.iconset
+    mkdir -p "$TEMP_ICONSET"
+
+    # Convert SVG to PNG at high resolution using qlmanage
+    qlmanage -t -s 1024 -o /tmp "$SCRIPT_DIR/icons/scalable/gftp.svg" 2>/dev/null
+    TEMP_PNG=$(ls /tmp/gftp.svg.png 2>/dev/null | head -1)
+
+    if [ -f "$TEMP_PNG" ]; then
+        # Generate all required icon sizes
+        for size in 16 32 128 256 512; do
+            sips -z $size $size "$TEMP_PNG" --out "$TEMP_ICONSET/icon_${size}x${size}.png" >/dev/null 2>&1
+            sips -z $((size*2)) $((size*2)) "$TEMP_PNG" --out "$TEMP_ICONSET/icon_${size}x${size}@2x.png" >/dev/null 2>&1
+        done
+
+        # Create ICNS file
+        iconutil -c icns "$TEMP_ICONSET" -o "$BUNDLE_NAME/Contents/Resources/gftp.icns"
+        if [ -f "$BUNDLE_NAME/Contents/Resources/gftp.icns" ]; then
+            ICON_ICNS="gftp.icns"
+            info "Icon converted successfully"
+        fi
+
+        # Cleanup
+        rm -rf "$(dirname "$TEMP_ICONSET")" "$TEMP_PNG"
+    else
+        warn "Failed to convert SVG icon"
+    fi
+elif [ -f "$SCRIPT_DIR/icons/48x48/gftp.png" ]; then
+    warn "Using PNG icon (SVG not found, may not scale well)"
+    cp "$SCRIPT_DIR/icons/48x48/gftp.png" "$BUNDLE_NAME/Contents/Resources/gftp.png"
+    ICON_ICNS="gftp.png"
+fi
+
 # Get version from gftp-gtk
 VERSION=$(strings "$GFTP_GTK" | grep -E '^2\.[0-9]+\.[0-9]+' | head -1 || echo "2.9.1b")
 
@@ -106,6 +143,17 @@ cat > "$BUNDLE_NAME/Contents/Info.plist" << EOF
     <string>10.13</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+EOF
+
+# Add icon if we have one
+if [ -n "$ICON_ICNS" ]; then
+    cat >> "$BUNDLE_NAME/Contents/Info.plist" << EOF
+    <key>CFBundleIconFile</key>
+    <string>$ICON_ICNS</string>
+EOF
+fi
+
+cat >> "$BUNDLE_NAME/Contents/Info.plist" << EOF
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>

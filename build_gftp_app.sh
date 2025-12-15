@@ -108,9 +108,11 @@ echo ""
 echo -e "${YELLOW}Step 2: Locating app icon...${NC}"
 
 ICON_PATH=""
-for icon in "$GFTP_SOURCE/icons/scalable/gftp.svg" \
-            "$JHBUILD_PREFIX/share/icons/hicolor/scalable/apps/gftp.svg" \
-            "$JHBUILD_PREFIX/share/icons/hicolor/48x48/apps/gftp.png"; do
+# Prefer PNG icon (correct file cabinet + globe design)
+for icon in "$GFTP_SOURCE/icons/48x48/gftp.png" \
+            "$JHBUILD_PREFIX/share/icons/hicolor/48x48/apps/gftp.png" \
+            "$GFTP_SOURCE/icons/scalable/gftp.svg" \
+            "$JHBUILD_PREFIX/share/icons/hicolor/scalable/apps/gftp.svg"; do
     if [ -f "$icon" ]; then
         ICON_PATH="$icon"
         echo "  Found icon: $ICON_PATH"

@@ -37,7 +37,7 @@ echo ""
 echo "[1/10] Checking bundle structure..."
 required_paths=(
     "Contents/Info.plist"
-    "Contents/MacOS/gftp-gtk"
+    "Contents/MacOS"
     "Contents/Resources/lib"
     "Contents/Resources/share"
 )
@@ -48,6 +48,21 @@ for path in "${required_paths[@]}"; do
         exit 1
     fi
 done
+
+# Check for executable (either in MacOS or Resources/bin)
+FOUND_EXEC=0
+if [ -f "$BUNDLE_PATH/Contents/MacOS/gftp-gtk" ] || \
+   [ -f "$BUNDLE_PATH/Contents/Resources/bin/gftp-gtk" ] || \
+   [ -f "$BUNDLE_PATH/Contents/MacOS/gFTP" ]; then
+    FOUND_EXEC=1
+fi
+
+if [ $FOUND_EXEC -eq 0 ]; then
+    echo -e "  ${RED}✗ FAIL: No executable found${NC}"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    exit 1
+fi
+
 echo -e "  ${GREEN}✓ PASS${NC}"
 PASS_COUNT=$((PASS_COUNT + 1))
 
@@ -63,15 +78,16 @@ fi
 
 # Test 3: Check dylib dependencies
 echo "[3/10] Checking library dependencies..."
-EXECUTABLE="$BUNDLE_PATH/Contents/MacOS/gftp-gtk"
-if file "$EXECUTABLE" | grep -q "shell script"; then
-    echo -e "  ${YELLOW}⚠ WARNING: Main executable is a launcher script${NC}"
-    ACTUAL_BINARY=$(find "$BUNDLE_PATH/Contents/MacOS" -name "*-bin" -o -name "gftp-gtk" -type f ! -name "gFTP" | head -1)
-    if [ -n "$ACTUAL_BINARY" ]; then
-        EXECUTABLE="$ACTUAL_BINARY"
+# Find the actual executable
+EXECUTABLE=""
+for candidate in "$BUNDLE_PATH/Contents/Resources/bin/gftp-gtk" \
+                 "$BUNDLE_PATH/Contents/MacOS/gftp-gtk" \
+                 "$BUNDLE_PATH/Contents/MacOS/gFTP"; do
+    if [ -f "$candidate" ] && file "$candidate" | grep -q "Mach-O"; then
+        EXECUTABLE="$candidate"
+        break
     fi
-    WARN_COUNT=$((WARN_COUNT + 1))
-fi
+done
 
 if [ -f "$EXECUTABLE" ] && file "$EXECUTABLE" | grep -q "Mach-O"; then
     bad_deps=$(otool -L "$EXECUTABLE" 2>/dev/null | grep -v "@" | grep -v "/usr/lib" | grep -v "/System" | grep -v ":" | wc -l | tr -d ' ')
