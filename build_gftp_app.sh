@@ -73,25 +73,33 @@ fi
 echo -e "${GREEN}✓ All prerequisites found${NC}"
 echo ""
 
-# Step 1: Build gFTP with meson
-echo -e "${YELLOW}Step 1: Building gFTP...${NC}"
+# Step 1: Ensure gFTP is built and installed
+echo -e "${YELLOW}Step 1: Ensuring gFTP is installed...${NC}"
 
 cd "$GFTP_SOURCE"
 
-if [ ! -d "build" ]; then
-    echo "  Configuring meson build..."
-    meson setup build \
-        -Dgtk3=true \
-        -Dgtk2=false \
-        -Dssl=true \
-        --prefix="$JHBUILD_PREFIX"
+# Set up jhbuild environment
+export PATH="$JHBUILD_PREFIX/bin:$PATH"
+export PKG_CONFIG_PATH="$JHBUILD_PREFIX/lib/pkgconfig:$JHBUILD_PREFIX/share/pkgconfig"
+export LD_LIBRARY_PATH="$JHBUILD_PREFIX/lib:$LD_LIBRARY_PATH"
+
+# Check if gftp-gtk binary exists and is recent
+if [ -f "$JHBUILD_PREFIX/bin/gftp-gtk" ]; then
+    BINARY_AGE=$(find "$JHBUILD_PREFIX/bin/gftp-gtk" -mmin +60 2>/dev/null | wc -l)
+    if [ "$BINARY_AGE" -eq 0 ]; then
+        echo "  gFTP binary is recent (< 1 hour old), skipping rebuild"
+    else
+        echo "  gFTP binary is old, rebuilding via jhbuild..."
+        cd ~/source/jhbuild
+        ./install/bin/jhbuild -f jhbuildrc buildone gftp
+        cd "$GFTP_SOURCE"
+    fi
+else
+    echo "  gFTP not found, building via jhbuild..."
+    cd ~/source/jhbuild
+    ./install/bin/jhbuild -f jhbuildrc buildone gftp
+    cd "$GFTP_SOURCE"
 fi
-
-echo "  Compiling..."
-meson compile -C build
-
-echo "  Installing to jhbuild prefix..."
-meson install -C build
 
 echo -e "${GREEN}✓ gFTP built and installed${NC}"
 echo ""
