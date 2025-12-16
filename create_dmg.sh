@@ -12,6 +12,9 @@ GIT_REV=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DMG_NAME="gFTP-${VERSION}-${GIT_REV}-macOS"
 VOLUME_NAME="gFTP $VERSION"
 
+# Include source code by default (can be disabled with INCLUDE_SOURCE=0)
+INCLUDE_SOURCE="${INCLUDE_SOURCE:-1}"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -52,6 +55,24 @@ trap "rm -rf $TEMP_DIR" EXIT
 info "Preparing DMG contents..."
 cp -R "$BUNDLE_NAME" "$TEMP_DIR/"
 
+# Include source code if requested
+if [ "$INCLUDE_SOURCE" = "1" ]; then
+    info "Including source code..."
+    mkdir -p "$TEMP_DIR/Source"
+
+    # Copy source files (excluding build artifacts)
+    rsync -av \
+        --exclude=build \
+        --exclude=gFTP.app \
+        --exclude=.git \
+        --exclude='*.o' \
+        --exclude='*.a' \
+        --exclude='*.dylib' \
+        --exclude='*.dmg' \
+        "$SCRIPT_DIR/" \
+        "$TEMP_DIR/Source/gftp/"
+fi
+
 # Create README for DMG
 cat > "$TEMP_DIR/README.txt" << EOF
 gFTP - GTK+ FTP Client
@@ -76,6 +97,9 @@ Configuration:
 Documentation:
   Visit: https://github.com/sedwards-ibowl/gftp
   or: https://www.gftp.org
+
+Source Code:
+  Included in the Source/gftp directory
 
 License:
   MIT License - See LICENSE file
@@ -128,3 +152,7 @@ echo "  open ${DMG_NAME}.dmg"
 echo ""
 echo "To verify the bundle:"
 echo "  hdiutil verify ${DMG_NAME}.dmg"
+echo ""
+echo "Note: Source code is included by default"
+echo "To exclude source code from the DMG:"
+echo "  INCLUDE_SOURCE=0 ./create_dmg.sh"

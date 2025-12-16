@@ -1516,6 +1516,7 @@ main (int argc, char **argv)
   g_signal_connect (G_OBJECT (main_window), "destroy",
 		      G_CALLBACK (_gftp_force_close), NULL);
   gtk_window_set_title (main_window, gftp_version);
+  gtk_window_set_position (main_window, GTK_WIN_POS_CENTER);
   gtk_window_set_role (main_window, "main");
   gtk_widget_set_name (GTK_WIDGET(main_window), gftp_version);
 #if GTK_MAJOR_VERSION==2

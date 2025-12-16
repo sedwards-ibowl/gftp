@@ -174,7 +174,7 @@ fi
 
 echo "  Checking bundle structure..."
 for path in "Contents/Info.plist" \
-            "Contents/MacOS/gftp-gtk" \
+            "Contents/MacOS" \
             "Contents/Resources/lib" \
             "Contents/Resources/share"; do
     if [ ! -e "$BUNDLE_PATH/$path" ]; then
@@ -183,16 +183,23 @@ for path in "Contents/Info.plist" \
     fi
 done
 
-echo "  Checking dylib dependencies..."
-MAIN_BINARY="$BUNDLE_PATH/Contents/MacOS/gftp-gtk"
-if file "$MAIN_BINARY" | grep -q "shell script"; then
-    echo "  Binary is a launcher script (expected for staged dependencies)"
-    # Find the actual binary
-    ACTUAL_BINARY=$(grep -o '[^"]*-bin' "$MAIN_BINARY" 2>/dev/null | head -1)
-    if [ -n "$ACTUAL_BINARY" ]; then
-        MAIN_BINARY="$BUNDLE_PATH/Contents/MacOS/$(basename "$ACTUAL_BINARY")"
+# Find the main executable (can be in MacOS or Resources/bin)
+MAIN_BINARY=""
+for candidate in "$BUNDLE_PATH/Contents/Resources/bin/gftp-gtk" \
+                 "$BUNDLE_PATH/Contents/MacOS/gftp-gtk" \
+                 "$BUNDLE_PATH/Contents/MacOS/gFTP"; do
+    if [ -f "$candidate" ] && file "$candidate" 2>/dev/null | grep -q "Mach-O"; then
+        MAIN_BINARY="$candidate"
+        break
     fi
+done
+
+if [ -z "$MAIN_BINARY" ]; then
+    echo -e "${RED}  ✗ No Mach-O executable found${NC}"
+    exit 1
 fi
+
+echo "  Checking dylib dependencies..."
 
 if [ -f "$MAIN_BINARY" ]; then
     BAD_DEPS=$(otool -L "$MAIN_BINARY" 2>/dev/null | grep -v "@" | grep -v "/usr/lib" | grep -v ":" | wc -l | tr -d ' ')
