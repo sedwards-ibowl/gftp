@@ -768,7 +768,8 @@ CreateConnectToolbar (GtkWidget * parent)
   toolbar = box;
 #endif
 
-  tempwid = gtk_image_new_from_icon_name ("gtk-network", GTK_ICON_SIZE_SMALL_TOOLBAR);
+  /* Use standard freedesktop icon name instead of deprecated gtk-network */
+  tempwid = gtk_image_new_from_icon_name ("network-server", GTK_ICON_SIZE_SMALL_TOOLBAR);
 
   openurl_btn = gtk_button_new ();
   // gtk4 - gtk_button_set_child (openurl_btn, tempwid);
@@ -869,7 +870,8 @@ CreateConnectToolbar (GtkWidget * parent)
   gftp_lookup_global_option ("default_protocol", &default_protocol);
   populate_combo_and_select_protocol (toolbar_combo_protocol, default_protocol);
 
-  tempwid = gtk_image_new_from_icon_name ("gtk-stop", GTK_ICON_SIZE_SMALL_TOOLBAR);
+  /* Use standard freedesktop icon name instead of deprecated gtk-stop */
+  tempwid = gtk_image_new_from_icon_name ("process-stop", GTK_ICON_SIZE_SMALL_TOOLBAR);
 
   stop_btn = gtk_button_new ();
 
