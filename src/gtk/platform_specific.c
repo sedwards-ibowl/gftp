@@ -80,6 +80,9 @@ void gftp_gtk_platform_specific_init(void)
     GtkosxApplication *theApp = g_object_new(GTKOSX_TYPE_APPLICATION, NULL);
 
     /* Get the menu bar from the UI manager and move it to the macOS menu bar */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
     GtkWidget *menubar = gtk_ui_manager_get_widget(factory, "/M");
 
     if (menubar && GTK_IS_MENU_BAR(menubar)) {
@@ -102,6 +105,7 @@ void gftp_gtk_platform_specific_init(void)
         /* Signal that the application is ready */
         gtkosx_application_ready(theApp);
     }
+#pragma GCC diagnostic pop
 #endif
 }
 #else

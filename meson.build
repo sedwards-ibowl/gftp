@@ -25,6 +25,9 @@ pthread = cc.find_library('pthread', required: true)
 add_project_arguments('-D_REENTRANT', language:'c')
 add_project_arguments(f'-DVERSION="@project_version@"', language:'c')
 
+# Suppress unused parameter warnings (common in callback functions)
+add_project_arguments('-Wno-unused-parameter', language:'c')
+
 #TODO: Set dep versions
 glib = dependency('glib-2.0', required: true)
 gtk2 = dependency('gtk+-2.0', required: get_option('gtkport') and get_option('gtk2'))
