@@ -165,6 +165,14 @@ Bookmarks use a hierarchical tree structure (`gftp_bookmarks_var` in `lib/gftp.h
 - Hash table lookup via `gftp_bookmarks_htable`
 - Implementation in `lib/config_file.c`
 
+## macOS Packaging
+
+For creating native macOS .app bundles, see `packaging/macos/README.md` which includes:
+- Instructions for using AppBundleGenerator
+- Font rendering configuration (CoreText backend support)
+- Bundle structure and dependencies
+- Code signing and distribution
+
 ## Important Notes
 
 - All file I/O uses 64-bit offsets (`_FILE_OFFSET_BITS 64`)
