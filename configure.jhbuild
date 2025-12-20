@@ -1,0 +1,35 @@
+#!/bin/bash
+
+ # Set up the environment to use jhbuild GTK3
+  export PATH=~/source/jhbuild/install/bin:$PATH
+  export PKG_CONFIG_PATH=~/source/jhbuild/install/lib/pkgconfig
+
+  # Configure with meson for GTK3
+  meson setup --reconfigure -Dgtk3=true build
+
+  # Build
+  ninja -C build
+
+  # Install (optional)
+  # ninja -C build install
+
+  Or use the configure.jhbuild script directly:
+
+  ./configure.jhbuild
+  ninja -C build
+
+  Key meson options for GTK3:
+  - -Dgtk3=true - Enable GTK3 (required)
+  - -Dgtk2=false - Disable GTK2 (optional, but gtk3 and gtk2 can't both be enabled)
+  - -Dgtkport=true - Enable GUI (default)
+  - -Dtextport=true - Enable text interface (optional)
+  - -Dssl=true - Enable SSL support (optional)
+
+  If you want a clean rebuild:
+
+  rm -rf build
+  export PATH=~/source/jhbuild/install/bin:$PATH
+  export PKG_CONFIG_PATH=~/source/jhbuild/install/lib/pkgconfig
+  meson setup -Dgtk3=true build
+  ninja -C build
+
