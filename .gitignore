@@ -52,3 +52,5 @@ build-aux
 autoconf
 autoconf-m4
 gFTP.app
+*.dmg
+

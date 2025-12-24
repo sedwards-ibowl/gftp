@@ -802,7 +802,7 @@ gftp_gen_ls_string (gftp_request * request, gftp_file * fle,
   g_free (attribs);
 
   if (GFTP_IS_SPECIAL_DEVICE (fle->st_mode))
-    tempstr2 = g_strdup_printf ("%ld, %ld", major (fle->size), minor (fle->size));
+    tempstr2 = g_strdup_printf ("%d, %d", (int)major (fle->size), (int)minor (fle->size));
   else
     tempstr2 = g_strdup_printf (GFTP_OFF_T_11PRINTF_MOD, fle->size);
 
@@ -1175,10 +1175,10 @@ void gftp_format_file_size(off_t bytes, char *out_buffer, size_t buffer_size)
     snprintf(out_buffer, buffer_size, "%s MiB", tmp);
   }
   else if (bytes >= 1024) {
-    snprintf(out_buffer, buffer_size, "%jd KiB", bytes / 1024);
+    snprintf(out_buffer, buffer_size, "%lld KiB", (long long)(bytes / 1024));
   }
   else {
-    snprintf(out_buffer, buffer_size, "%jd B", bytes);
+    snprintf(out_buffer, buffer_size, "%lld B", (long long)bytes);
   }
 }
 
