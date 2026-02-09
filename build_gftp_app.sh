@@ -15,6 +15,8 @@
 
 set -e  # Exit on error
 
+
+
 # Configuration
 JHBUILD_PREFIX="${JHBUILD_PREFIX:-$HOME/source/jhbuild/install}"
 GFTP_SOURCE="$(cd "$(dirname "$0")" && pwd)"
@@ -90,38 +92,52 @@ if [ -f "$JHBUILD_PREFIX/bin/gftp-gtk" ]; then
         echo "  gFTP binary is recent (< 1 hour old), skipping rebuild"
     else
         echo "  gFTP binary is old, rebuilding via jhbuild..."
-        cd ~/source/jhbuild
-        ./install/bin/jhbuild -f jhbuildrc buildone gftp
-        cd "$GFTP_SOURCE"
+        jhbuild -f jhbuildrc buildone gftp
     fi
 else
     echo "  gFTP not found, building via jhbuild..."
-    cd ~/source/jhbuild
-    ./install/bin/jhbuild -f jhbuildrc buildone gftp
-    cd "$GFTP_SOURCE"
+    jhbuild -f jhbuildrc buildone gftp
 fi
 
 echo -e "${GREEN}✓ gFTP built and installed${NC}"
 echo ""
 
-# Step 2: Find icon
-echo -e "${YELLOW}Step 2: Locating app icon...${NC}"
+# Step 2: Create .icns file from SVG
+echo -e "${YELLOW}Step 2: Creating .icns file from SVG...${NC}"
+SVG_ICON="$GFTP_SOURCE/icons/scalable/gftp.svg"
+ICNS_FILE="$GFTP_SOURCE/gftp.icns"
 
-ICON_PATH=""
-# Prefer PNG icon (correct file cabinet + globe design)
-for icon in "$GFTP_SOURCE/icons/48x48/gftp.png" \
-            "$JHBUILD_PREFIX/share/icons/hicolor/48x48/apps/gftp.png" \
-            "$GFTP_SOURCE/icons/scalable/gftp.svg" \
-            "$JHBUILD_PREFIX/share/icons/hicolor/scalable/apps/gftp.svg"; do
-    if [ -f "$icon" ]; then
-        ICON_PATH="$icon"
-        echo "  Found icon: $ICON_PATH"
-        break
+if [ -f "$SVG_ICON" ]; then
+    echo "  Found SVG icon, converting to ICNS..."
+    TEMP_ICONSET=$(mktemp -d)/gftp.iconset
+    mkdir -p "$TEMP_ICONSET"
+
+    # Convert SVG to PNG at high resolution using qlmanage
+    qlmanage -t -s 1024 -o /tmp "$SVG_ICON" 2>/dev/null
+    TEMP_PNG=$(ls /tmp/gftp.svg.png 2>/dev/null | head -1)
+
+    if [ -f "$TEMP_PNG" ]; then
+        # Generate all required icon sizes
+        for size in 16 32 128 256 512; do
+            sips -z $size $size "$TEMP_PNG" --out "$TEMP_ICONSET/icon_${size}x${size}.png" >/dev/null 2>&1
+            sips -z $((size*2)) $((size*2)) "$TEMP_PNG" --out "$TEMP_ICONSET/icon_${size}x${size}@2x.png" >/dev/null 2>&1
+        done
+
+        # Create ICNS file
+        iconutil -c icns "$TEMP_ICONSET" -o "$ICNS_FILE"
+        if [ -f "$ICNS_FILE" ]; then
+            echo "  Icon converted successfully to $ICNS_FILE"
+        fi
+
+        # Cleanup
+        rm -rf "$(dirname "$TEMP_ICONSET")" "$TEMP_PNG"
+    else
+        echo "  ${YELLOW}Warning: Failed to convert SVG icon, proceeding without a high-res icon.${NC}"
+        ICNS_FILE=""
     fi
-done
-
-if [ -z "$ICON_PATH" ]; then
-    echo -e "${YELLOW}  Warning: No icon found, continuing without icon${NC}"
+else
+    echo "  ${YELLOW}Warning: SVG icon not found, proceeding without a high-res icon.${NC}"
+    ICNS_FILE=""
 fi
 
 echo ""
@@ -139,8 +155,8 @@ BUNDLE_ARGS+=("--hardened-runtime")
 BUNDLE_ARGS+=("--allow-dyld-vars")
 BUNDLE_ARGS+=("--stage-dependencies" "$JHBUILD_PREFIX")
 
-if [ -n "$ICON_PATH" ]; then
-    BUNDLE_ARGS+=("--icon" "$ICON_PATH")
+if [ -n "$ICNS_FILE" ] && [ -f "$ICNS_FILE" ]; then
+    BUNDLE_ARGS+=("--icon" "$ICNS_FILE")
 fi
 
 echo "  Running AppBundleGenerator..."
@@ -248,3 +264,19 @@ echo -e "${BLUE}To create a DMG:${NC}"
 echo "  cd $GFTP_SOURCE"
 echo "  ./create_dmg_for_app.sh \"$BUNDLE_PATH\""
 echo ""
+
+INSTALL_DIR="/Users/sedwards/.local/bin"
+SOURCE_FILE="build/src/text/gftp-text"
+DEST_FILE="$INSTALL_DIR/gftp-text"
+
+if [ ! -f "$SOURCE_FILE" ]; then
+    echo "Error: $SOURCE_FILE not found. Please build the project first."
+    exit 1
+fi
+
+echo "Installing gftp-text to $DEST_FILE..."
+cp "$SOURCE_FILE" "$DEST_FILE"
+chmod +x "$DEST_FILE"
+
+
+

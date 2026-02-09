@@ -976,7 +976,7 @@ void gftp_locale_init (void)
   setlocale (LC_ALL, "");
   textdomain ("gftp");
 
-#ifdef HAVE_COREFOUNDATION
+#if defined(__APPLE__)
   /* On macOS, check if running from an app bundle and use bundle's Resources directory */
   CFBundleRef bundle = CFBundleGetMainBundle();
   if (bundle) {
@@ -994,7 +994,7 @@ void gftp_locale_init (void)
       CFRelease(resourceURL);
     }
   }
-#endif /* HAVE_COREFOUNDATION */
+#endif /* defined(__APPLE__) */
 
   /* Fall back to compile-time location if not in bundle or bundle path doesn't exist */
   bindtextdomain ("gftp", locale_dir ? locale_dir : LOCALE_DIR);
@@ -1003,8 +1003,13 @@ void gftp_locale_init (void)
   if (locale_dir)
     g_free(locale_dir);
 #endif /* HAVE_GETTEXT */
+
+#if defined(__APPLE__)
+  BASE_CONF_DIR = g_build_filename (g_get_home_dir(), "Library", "gFTP", NULL);
+#else
   // XDG SPEC (XDG_CONFIG_HOME defaults to $HOME/.config/ + gftp)
   BASE_CONF_DIR = g_build_filename (g_get_user_config_dir(), "gftp", NULL);
+#endif
   if (g_mkdir_with_parents (BASE_CONF_DIR, 0755) == -1)
   {
     printf (_("gFTP Error: Could not make directory %s: %s\n"),
@@ -1125,7 +1130,12 @@ char * gftp_get_share_dir (void)
           gftp_share_dir = g_strdup (envval);
           free_share_dir = 1;
       } else {
+#if defined(__APPLE__)
+          gftp_share_dir = g_build_filename (g_get_home_dir(), "Library", "gFTP", NULL);
+          free_share_dir = 1;
+#else
           gftp_share_dir = SHARE_DIR;
+#endif
       }
   }
   return (gftp_share_dir);
@@ -1142,7 +1152,12 @@ char * gftp_get_doc_dir (void)
           gftp_doc_dir = g_strdup (envval);
           free_doc_dir = 1;
       } else {
+#if defined(__APPLE__)
+          gftp_doc_dir = g_build_filename (g_get_home_dir(), "Library", "gFTP", "doc", NULL);
+          free_doc_dir = 1;
+#else
           gftp_doc_dir = DOC_DIR;
+#endif
       }
   }
   return (gftp_doc_dir);

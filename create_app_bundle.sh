@@ -1,7 +1,7 @@
 set -e
 
 # Configuration
-INSTALL_PREFIX="${INSTALL_PREFIX:-$HOME/source/jhbuild/install}"
+INSTALL_PREFIX="${INSTALL_PREFIX:-./install}"
 BUNDLE_NAME="gFTP.app"
 BUNDLE_ID="org.gftp.gftp-gtk"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -67,10 +67,23 @@ else
 fi
 
 # Copy icons if they exist
-if [ -d "$INSTALL_PREFIX/share/pixmaps" ]; then
+if [ -d "$INSTALL_PREFIX/share/icons" ]; then
     info "Copying icons..."
-    cp -R "$INSTALL_PREFIX/share/pixmaps" "$BUNDLE_NAME/Contents/Resources/"
+    cp -R "$INSTALL_PREFIX/share/icons" "$BUNDLE_NAME/Contents/Resources/"
 fi
+
+# Copy gftp data if it exists
+if [ -d "$INSTALL_PREFIX/share/gftp" ]; then
+    info "Copying gftp data..."
+    cp -R "$INSTALL_PREFIX/share/gftp" "$BUNDLE_NAME/Contents/Resources/"
+fi
+
+# Copy gftp doc if it exists
+if [ -d "$INSTALL_PREFIX/share/doc/gftp" ]; then
+    info "Copying gftp documentation..."
+    cp -R "$INSTALL_PREFIX/share/doc/gftp" "$BUNDLE_NAME/Contents/Resources/doc"
+fi
+
 
 # Find and convert app icon to ICNS
 info "Setting up application icon..."

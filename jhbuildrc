@@ -1,0 +1,77 @@
+# JHBuild configuration for macOS native GTK3 build
+# No Homebrew dependencies - macOS SDK and native tools only
+
+import os
+
+# Prefix where GTK3 and dependencies will be installed
+prefix = os.path.abspath('jhbuild_install')
+checkoutroot = os.path.abspath('jhbuild_checkout')
+buildroot = os.path.abspath('jhbuild_build')
+
+# Use macOS native tools
+os.environ['CC'] = '/usr/bin/clang'
+os.environ['CXX'] = '/usr/bin/clang++'
+os.environ['OBJC'] = '/usr/bin/clang'
+
+# Compiler and linker flags for macOS
+_macos_sdk = '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk'
+os.environ['CFLAGS'] = f'-isysroot {_macos_sdk} -I{prefix}/include'
+os.environ['CXXFLAGS'] = f'-isysroot {_macos_sdk} -I{prefix}/include'
+os.environ['LDFLAGS'] = f'-isysroot {_macos_sdk} -L{prefix}/lib'
+os.environ['OBJCFLAGS'] = f'-isysroot {_macos_sdk} -I{prefix}/include'
+
+# PKG_CONFIG settings - use LIBDIR to completely override default search paths
+# This prevents pkg-config from finding Homebrew libraries
+os.environ['PKG_CONFIG_LIBDIR'] = f'{prefix}/lib/pkgconfig:{prefix}/share/pkgconfig'
+os.environ['PKG_CONFIG_PATH'] = f'{prefix}/lib/pkgconfig:{prefix}/share/pkgconfig'
+os.environ['PKG_CONFIG'] = '/opt/homebrew/bin/pkg-config'
+
+# Path settings - include Homebrew build tools but exclude Homebrew libraries
+# Homebrew bin is at END of PATH (lowest priority) for build tools only (cmake, ninja, automake)
+# Homebrew libraries are NOT in LDFLAGS, so they won't be linked
+os.environ['PATH'] = f'{prefix}/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/Applications/Xcode.app/Contents/Developer/usr/bin:/opt/homebrew/bin'
+
+# Exclude Homebrew library paths - we only use Homebrew build tools, not libraries
+if 'HOMEBREW_PREFIX' in os.environ:
+    del os.environ['HOMEBREW_PREFIX']
+
+# Module sets for GTK3 and gftp
+modulesets_dir = os.path.abspath('jhbuild_modulesets')
+moduleset = [
+    os.path.join(modulesets_dir, 'gtk-osx-bootstrap.modules'),
+    os.path.join(modulesets_dir, 'gtk-osx.modules'),
+    os.path.join(modulesets_dir, 'gtk-osx-network.modules'),
+    os.path.join(modulesets_dir, 'gftp.modules')
+]
+modules = ['meta-gtk-osx-bootstrap', 'meta-gtk-osx-gtk3', 'gftp']
+
+# Build configuration
+makeargs = '-j4'  # Parallel build with 4 jobs (adjust for your CPU)
+nice_build = True
+
+# Disable default autogenargs that break openssl and other non-autotools projects
+autogenargs = ''
+
+# Module-specific autogenargs overrides
+module_autogenargs = {
+    'openssl': 'shared',  # Only pass 'shared' to openssl Configure
+}
+
+# Module-specific mesonargs for native macOS builds (no X11)
+module_mesonargs = {
+    'cairo': '-Dfontconfig=enabled -Dfreetype=enabled -Dxcb=disabled -Dxlib=disabled -Dxlib-xcb=disabled -Dquartz=enabled -Dzlib=enabled -Dtests=disabled',
+}
+
+# Skip modules that require X11 or Linux-specific features
+skip = ['gtk-doc']
+
+# Installation settings
+use_local_modulesets = True
+# modulesets_dir already defined above
+
+# Interaction settings
+interact = True
+nonetwork = False
+
+# Tarball location
+tarballdir = os.path.abspath('jhbuild_pkgs')

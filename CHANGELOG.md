@@ -1,5 +1,46 @@
 # gFTP Changelog - Recent Changes
 
+## 2025-01-09 - macOS Build System and Resource Handling Overhaul
+
+### Added: Centralized macOS Resource Management in `$HOME/Library/gFTP`
+
+**Problem**: gFTP was using the standard XDG base directories for configuration and resources on macOS, which is not the platform standard. This could lead to a confusing user experience and made it difficult to create a clean, self-contained app bundle.
+
+**Solution**: The application now uses `$HOME/Library/gFTP` for all user-specific data on macOS:
+- **Configuration:** `gftprc` and `bookmarks` are now stored in `~/Library/gFTP/`.
+- **First Run:** On first launch, the application copies default resources (sample bookmarks, icons, etc.) from the app bundle's `Resources` directory to `~/Library/gFTP/`. This ensures the application is properly initialized.
+- **C Code Changes:**
+    - `lib/misc.c` was modified to detect macOS (`__APPLE__`) and set the base configuration directory accordingly.
+    - `gftp_get_share_dir()` and `gftp_get_doc_dir()` were updated to point to the new location on macOS.
+- **App Bundle Integration:**
+    - A new function `gftp_gtk_first_run_check()` was added to `src/gtk/gftp-gtk.c` to handle the initial resource copy.
+
+### Changed: Modernized Meson Build for macOS and App Bundles
+
+**Problem**: The build system was not optimized for creating a relocatable macOS app bundle. Artifacts were installed to standard Unix-style locations, making it difficult to collect them into a `.app` structure.
+
+**Solution**: The Meson build system has been updated to support a clean installation layout for app bundling:
+- **`install` Directory:** All build artifacts (executables, libraries, documentation, icons, etc.) are now installed into a dedicated `install` directory within the build root.
+- **`meson.build` Updates:**
+    - A new `install_dir_base` option was added to the root `meson.build` file.
+    - All `install_data`, `install_man`, and `executable` install targets in `src/`, `docs/`, and `icons/` were updated to use this base directory.
+- **`create_app_bundle.sh`:** This script was updated to source all its contents from the new `install` directory, making the bundling process more reliable and self-contained.
+
+### Fixed: Static Library Linking Issues on macOS
+
+**Problem**: The build system was configured to create intermediate static libraries (`libgftp.a`, `libgftpui.a`), which caused `ld: multiple errors: archive member '//' not a mach-o file` linking errors on macOS.
+
+**Solution**: The build system was refactored to build all source files directly into the final executables (`gftp-gtk`, `gftp-text`) instead of creating static libraries. This avoids the platform-specific linking issues with `.a` files.
+
+**Files Modified**:
+- `lib/misc.c`: Updated for macOS resource paths.
+- `src/gtk/gftp-gtk.c`: Added first-run resource copy logic.
+- `meson.build` (root and subdirectories): Updated for the new `install` directory layout and direct source compilation.
+- `create_app_bundle.sh`: Updated to use the new `install` directory.
+- `CHANGELOG.md`: Updated with these changes.
+- `MACOS.md`: Updated with new build instructions.
+- `README.AppBundle.md`: Updated with new bundle information.
+
 ## 2024-12-12 - macOS Improvements
 
 ### Fixed: SSH/SFTP Crash on macOS (Threading Issue)

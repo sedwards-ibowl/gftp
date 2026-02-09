@@ -1,28 +1,22 @@
-# gFTP macOS App Bundle with Relocatable Translations
+# gFTP macOS App Bundle
 
-This document describes the implementation of relocatable translations for gFTP on macOS using app bundles.
+This document describes the implementation of the `gFTP.app` bundle for macOS, including its structure and resource management.
 
 ## Overview
 
-gFTP now supports automatic detection and loading of translations from a macOS application bundle. When running from `gFTP.app`, the application will automatically find translations in the bundle's Resources directory without requiring hardcoded paths.
+gFTP is packaged as a standard macOS application bundle (`.app`). This allows it to be a self-contained, relocatable application that integrates well with the macOS environment.
 
 ## Implementation Details
 
-### Runtime Detection
+### Resource Management
 
-The implementation uses CoreFoundation APIs to detect if the application is running from an app bundle:
-
-1. **CoreFoundation Integration** (`meson.build`)
-   - Added `appleframeworks` dependency with CoreFoundation module
-   - Defines `HAVE_COREFOUNDATION` when available
-
-2. **Locale Directory Detection** (`lib/misc.c:gftp_locale_init()`)
-   - Uses `CFBundleGetMainBundle()` to get the bundle reference
-   - Uses `CFBundleCopyResourcesDirectoryURL()` to find Resources directory
-   - Constructs path to `Resources/locale` directory
-   - Falls back to compile-time `LOCALE_DIR` if not in a bundle or path doesn't exist
+- **App Bundle Resources:** All necessary resources for the application, such as icons, translations, documentation, and sample files, are included within the `gFTP.app` bundle in the `Contents/Resources` directory.
+- **First-Run Initialization:** When the application is launched for the first time, it copies its default resources from the app bundle to the user's local application support directory at `$HOME/Library/gFTP`. This includes the default `gftprc` configuration file and sample bookmarks. This ensures that each user has their own set of configuration files to modify.
+- **Runtime Detection:** The application uses CoreFoundation APIs to determine if it's running from within an app bundle and to locate its `Resources` directory.
 
 ### App Bundle Structure
+
+The `gFTP.app` bundle has the following structure:
 
 ```
 gFTP.app/
@@ -31,93 +25,71 @@ gFTP.app/
 │   ├── MacOS/
 │   │   └── gftp-gtk                 (executable)
 │   └── Resources/
-│       └── locale/
-│           ├── es/LC_MESSAGES/gftp.mo
-│           ├── fr/LC_MESSAGES/gftp.mo
-│           ├── de/LC_MESSAGES/gftp.mo
-│           └── ... (64 locales total)
+│       ├── gftp.icns                (application icon)
+│       ├── locale/                  (translation files)
+│       │   ├── es/LC_MESSAGES/gftp.mo
+│       │   └── ...
+│       ├── gftp/                    (sample gftprc and icons)
+│       │   ├── gftprc
+│       │   └── *.xpm
+│       └── doc/                     (documentation)
+│           ├── USERS-GUIDE
+│           └── ...
 ```
 
 ## Building and Packaging
 
-### Step 1: Build gFTP
+### Step 1: Build gFTP with Meson
+
+First, build the application using Meson and Ninja. This will compile the code and prepare the files for bundling.
 
 ```bash
-cd ~/source/jhbuild
-jhbuild -f jhbuildrc buildone gftp
+# Configure the build
+meson setup build
+
+# Compile the application
+ninja -C build
+
+# Install the artifacts to a local directory
+ninja -C build install
 ```
 
-This will:
-- Build gftp-gtk with CoreFoundation support
-- Install to `~/source/jhbuild/install/`
-- Build all translation files (*.mo) to `install/share/locale/`
+### Step 2: Create the App Bundle
 
-### Step 2: Create App Bundle
+The repository includes a script to automate the creation of the app bundle.
 
 ```bash
-cd ~/source/jhbuild/checkout/gftp
 ./create_app_bundle.sh
 ```
 
-This will:
-- Create `gFTP.app` in the current directory
-- Copy the gftp-gtk binary to `Contents/MacOS/`
-- Copy all 64 translation files to `Contents/Resources/locale/`
-- Generate `Info.plist` with app metadata
+This script performs the following actions:
+- Creates the `gFTP.app` directory structure.
+- Copies the `gftp-gtk` executable from the `install` directory.
+- Copies all resources (icons, translations, documentation, etc.) from the `install` directory into `gFTP.app/Contents/Resources/`.
+- Generates an `Info.plist` file.
 
 ## Testing
 
-### Test App Bundle Launch
+### Launching the App
+
+You can launch the application by double-clicking `gFTP.app` in the Finder or by using the command line:
 
 ```bash
-# Open with Finder
 open gFTP.app
-
-# Or run directly
-./gFTP.app/Contents/MacOS/gftp-gtk
 ```
 
-### Test Translation Loading
+### Verifying Resource Installation
+
+On the first launch, you can verify that the resources have been copied to your local application support directory:
 
 ```bash
-# Test Spanish translations
-LANG=es_ES.UTF-8 ./gFTP.app/Contents/MacOS/gftp-gtk
-
-# Test French translations
-LANG=fr_FR.UTF-8 ./gFTP.app/Contents/MacOS/gftp-gtk
-
-# Test German translations
-LANG=de_DE.UTF-8 ./gFTP.app/Contents/MacOS/gftp-gtk
+ls -l ~/Library/gFTP/
 ```
-
-The application will automatically detect it's running from a bundle and load translations from `Contents/Resources/locale/`.
+This directory should contain a `gftprc` file and other resources.
 
 ## Benefits
 
-1. **Relocatable**: App bundle can be moved anywhere without breaking translations
-2. **Self-contained**: All translations included in the bundle
-3. **Backward Compatible**: Still works with traditional Unix installations
-4. **No Scripts Required**: No wrapper scripts needed to set environment variables
-5. **Minimal Code Changes**: Only ~30 lines of code added
-
-## Files Modified
-
-1. `meson.build` - Added CoreFoundation framework dependency
-2. `lib/misc.c` - Added app bundle detection in `gftp_locale_init()`
-3. `create_app_bundle.sh` - New script to create app bundles
-
-## Future Enhancements
-
-Potential improvements for the future:
-
-1. **Icon Support**: Add proper .icns icon file
-2. **DMG Packaging**: Create distributable DMG images
-3. **Code Signing**: Sign the app bundle for Gatekeeper
-4. **Notarization**: Notarize for macOS 10.15+
-5. **Dependencies**: Bundle GTK3 and other dependencies using tools like `gtk-mac-bundler`
-
-## References
-
-- [Apple Bundle Programming Guide](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/)
-- [CoreFoundation Framework](https://developer.apple.com/documentation/corefoundation)
-- [GNU gettext](https://www.gnu.org/software/gettext/manual/gettext.html)
+1.  **Self-Contained:** The app bundle contains everything the application needs to run.
+2.  **Relocatable:** The `gFTP.app` bundle can be moved to any location on the filesystem.
+3.  **Clean User Environment:** User-specific configuration is stored cleanly in the standard `~/Library/gFTP` location, separate from the application itself.
+4.  **Standard macOS Experience:** The application behaves like a typical macOS app, making it easy for users to install and manage.

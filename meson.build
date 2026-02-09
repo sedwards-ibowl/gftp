@@ -16,6 +16,7 @@ endif
 
 project_version = meson.project_version()
 project_name = meson.project_name()
+install_dir_base = get_option('prefix')
 
 add_project_arguments(f'-DPACKAGE_NAME="@project_name@"', language:'c')
 
@@ -46,6 +47,7 @@ libdeps = [glib, pthread]
 if get_option('ssl') and ssl.found()
     add_project_arguments('-DUSE_SSL="1"', language:'c')
     libdeps += ssl
+    add_project_arguments('-I' + meson.current_source_dir() + '/third_party/openssl/include', language: 'c')
 endif
 
 # On macOS, add CoreFoundation for app bundle support

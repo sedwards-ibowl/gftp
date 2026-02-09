@@ -1480,6 +1480,62 @@ static void _setup_window2 (int argc, char **argv)
     }
 }
 
+#if defined(__APPLE__)
+static void
+gftp_gtk_first_run_check (void)
+{
+  char *dest_dir;
+  dest_dir = g_build_filename (g_get_home_dir(), "Library", "gFTP", NULL);
+
+  if (g_file_test (dest_dir, G_FILE_TEST_IS_DIR))
+    {
+      g_free (dest_dir);
+      return;
+    }
+
+  if (g_mkdir_with_parents (dest_dir, 0755) == -1)
+    {
+      ftp_log (gftp_logging_error, NULL,
+               _("gFTP Error: Could not make directory %s: %s\n"),
+               dest_dir, g_strerror (errno));
+      g_free (dest_dir);
+      return;
+    }
+
+  CFBundleRef bundle = CFBundleGetMainBundle();
+  if (bundle)
+    {
+      CFURLRef resourceURL = CFBundleCopyResourcesDirectoryURL(bundle);
+      if (resourceURL)
+        {
+          char bundle_res_path[PATH_MAX];
+          if (CFURLGetFileSystemRepresentation(resourceURL, TRUE, (UInt8 *)bundle_res_path, PATH_MAX))
+            {
+              GError *error = NULL;
+              GDir *dir;
+              const gchar *name;
+
+              dir = g_dir_open(bundle_res_path, 0, &error);
+              if (dir)
+                {
+                  while ((name = g_dir_read_name(dir)))
+                    {
+                      char *src_path = g_build_filename (bundle_res_path, name, NULL);
+                      char *dest_path = g_build_filename (dest_dir, name, NULL);
+                      g_file_copy (g_file_new_for_path(src_path), g_file_new_for_path(dest_path), G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, &error);
+                      g_free (src_path);
+                      g_free (dest_path);
+                    }
+                  g_dir_close(dir);
+                }
+            }
+          CFRelease(resourceURL);
+        }
+    }
+  g_free (dest_dir);
+}
+#endif
+
 
 int
 main (int argc, char **argv)
@@ -1491,6 +1547,10 @@ main (int argc, char **argv)
      the core library would be dependant on Gtk+ being present */
   gftp_option_types[gftp_option_type_color].read_function = gftp_gtk_config_file_read_color;
   gftp_option_types[gftp_option_type_color].write_function = gftp_gtk_config_file_write_color;
+
+#if defined(__APPLE__)
+  gftp_gtk_first_run_check ();
+#endif
 
   gftpui_common_init (&argc, &argv, ftp_log);
   gftpui_common_child_process_done = 0;

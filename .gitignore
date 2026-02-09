@@ -53,4 +53,5 @@ autoconf
 autoconf-m4
 gFTP.app
 *.dmg
+install
 

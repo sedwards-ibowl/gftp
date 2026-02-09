@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE moduleset SYSTEM "moduleset.dtd">
+<?xml-stylesheet type="text/xsl" href="moduleset.xsl"?>
+<moduleset>
+  <repository type="git" name="github"
+      href="https://github.com/"/>
+
+  <!-- gFTP - GTK+ FTP client -->
+  <meson id="gftp" mesonargs="-Dgtk3=true -Dgtk2=false -Dssl=true">
+    <branch repo="github" module="sedwards-ibowl/gftp.git"
+            checkoutdir="gftp">
+    </branch>
+    <dependencies>
+      <dep package="gtk+-3.0"/>
+      <dep package="glib"/>
+      <dep package="openssl"/>
+      <dep package="intltool"/>
+      <dep package="gettext"/>
+    </dependencies>
+  </meson>
+
+</moduleset>
