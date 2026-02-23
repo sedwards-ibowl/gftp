@@ -2,7 +2,7 @@
 
 # This script installs the gftp-text executable to a writable directory in your PATH.
 
-INSTALL_DIR="/Users/sedwards/.local/bin"
+INSTALL_DIR="$HOME/.local/bin"
 SOURCE_FILE="build/src/text/gftp-text"
 DEST_FILE="$INSTALL_DIR/gftp-text"
 

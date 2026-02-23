@@ -1005,7 +1005,13 @@ void gftp_locale_init (void)
 #endif /* HAVE_GETTEXT */
 
 #if defined(__APPLE__)
-  BASE_CONF_DIR = g_build_filename (g_get_home_dir(), "Library", "gFTP", NULL);
+  // Check for GFTP_CONFIG_DIR environment variable
+  char *config_env = getenv("GFTP_CONFIG_DIR");
+  if (config_env != NULL && *config_env != '\0') {
+      BASE_CONF_DIR = g_strdup(config_env);
+  } else {
+      BASE_CONF_DIR = g_build_filename (g_get_home_dir(), "Library", "gFTP", NULL);
+  }
 #else
   // XDG SPEC (XDG_CONFIG_HOME defaults to $HOME/.config/ + gftp)
   BASE_CONF_DIR = g_build_filename (g_get_user_config_dir(), "gftp", NULL);
@@ -1123,20 +1129,25 @@ char * gftp_get_share_dir (void)
 {
   DEBUG_PRINT_FUNC
   char *envval;
+
+  // Always check env var first. If set, it overrides everything.
+  envval = getenv ("GFTP_SHARE_DIR");
+  if (envval && *envval) {
+      if (gftp_share_dir != NULL && free_share_dir) g_free(gftp_share_dir);
+      gftp_share_dir = g_strdup (envval);
+      free_share_dir = 1;
+      return (gftp_share_dir);
+  }
+
+  // If env var not set, then proceed with existing logic (initialize only once)
   if (gftp_share_dir == NULL)
   {
-      envval = getenv ("GFTP_SHARE_DIR");
-      if (envval && *envval) {
-          gftp_share_dir = g_strdup (envval);
-          free_share_dir = 1;
-      } else {
 #if defined(__APPLE__)
-          gftp_share_dir = g_build_filename (g_get_home_dir(), "Library", "gFTP", NULL);
-          free_share_dir = 1;
+      gftp_share_dir = g_build_filename (g_get_home_dir(), "Library", "gFTP", NULL);
+      free_share_dir = 1;
 #else
-          gftp_share_dir = SHARE_DIR;
+      gftp_share_dir = SHARE_DIR;
 #endif
-      }
   }
   return (gftp_share_dir);
 }
@@ -1145,20 +1156,23 @@ char * gftp_get_doc_dir (void)
 {
   DEBUG_PRINT_FUNC
   char *envval;
+
+  envval = getenv ("GFTP_DOC_DIR");
+  if (envval && *envval) {
+      if (gftp_doc_dir != NULL && free_doc_dir) g_free(gftp_doc_dir);
+      gftp_doc_dir = g_strdup (envval);
+      free_doc_dir = 1;
+      return (gftp_doc_dir);
+  }
+
   if (gftp_doc_dir == NULL)
   {
-      envval = getenv ("GFTP_DOC_DIR");
-      if (envval && *envval) {
-          gftp_doc_dir = g_strdup (envval);
-          free_doc_dir = 1;
-      } else {
 #if defined(__APPLE__)
-          gftp_doc_dir = g_build_filename (g_get_home_dir(), "Library", "gFTP", "doc", NULL);
-          free_doc_dir = 1;
+      gftp_doc_dir = g_build_filename (g_get_home_dir(), "Library", "gFTP", "doc", NULL);
+      free_doc_dir = 1;
 #else
-          gftp_doc_dir = DOC_DIR;
+      gftp_doc_dir = DOC_DIR;
 #endif
-      }
   }
   return (gftp_doc_dir);
 }

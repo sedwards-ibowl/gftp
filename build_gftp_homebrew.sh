@@ -17,10 +17,10 @@ set -e  # Exit on error
 
 # Configuration
 HOMEBREW_PREFIX="$(brew --prefix)"
-GFTP_PREFIX="${GFTP_PREFIX:-$HOME/gftp-install}"
+GFTP_PREFIX="$HOME/source/gftp/gftp-install"
 GFTP_SOURCE="$(cd "$(dirname "$0")" && pwd)"
-APP_BUNDLE_GENERATOR="${APP_BUNDLE_GENERATOR:-$HOME/source/AppBundleGenerator/AppBundleGenerator}"
-DEST_DIR="${DEST_DIR:-$HOME/Desktop}"
+APP_BUNDLE_GENERATOR="${APP_BUNDLE_GENERATOR:-/Users/sedwards/source/AppBundleGenerator/AppBundleGenerator}"
+DEST_DIR="${DEST_DIR:-.}"
 APP_NAME="gFTP"
 BUNDLE_ID="org.gftp.gftp-gtk"
 VERSION="2.9.1b"
@@ -31,6 +31,35 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Helper functions
+error() {
+    echo -e "${RED}ERROR: $1${NC}" >&2
+    exit 1
+}
+
+info() {
+    echo -e "${GREEN}INFO: $1${NC}"
+}
+
+warn() {
+    echo -e "${YELLOW}WARN: $1${NC}"
+}
+
+if [ "$1" == "clean" ]; then
+    info "Cleaning up..."
+    if [ -d "build" ]; then
+        rm -rf build
+    fi
+    if [ -d "gFTP.app" ]; then
+        rm -rf gFTP.app
+    fi
+    if [ -d "gftp-install" ]; then
+        rm -rf gftp-install
+    fi
+    info "Cleanup complete."
+    exit 0
+fi
 
 echo -e "${GREEN}=====================================${NC}"
 echo -e "${GREEN}  gFTP macOS Builder (Homebrew)${NC}"
@@ -71,16 +100,20 @@ if ! command -v ninja &> /dev/null; then
     brew install ninja
 fi
 
-# Check for AppBundleGenerator (optional)
+# Check for AppBundleGenerator
 if [ ! -f "$APP_BUNDLE_GENERATOR" ]; then
     echo -e "${YELLOW}Warning: AppBundleGenerator not found at: $APP_BUNDLE_GENERATOR${NC}"
-    echo "  App bundle creation will be skipped."
     echo "  To build it: cd ~/source/AppBundleGenerator && make"
-    CREATE_BUNDLE=false
-else
-    echo "  ✓ AppBundleGenerator found"
-    CREATE_BUNDLE=true
+    exit 1
 fi
+echo "  ✓ AppBundleGenerator found"
+
+# Check for ImageMagick 'convert'
+if ! command -v convert &> /dev/null; then
+    echo -e "${RED}Error: ImageMagick 'convert' not found. Please install with: brew install imagemagick${NC}"
+    exit 1
+fi
+echo "  ✓ ImageMagick 'convert' found"
 
 echo -e "${GREEN}✓ All required prerequisites found${NC}"
 echo ""
@@ -116,12 +149,24 @@ echo "  Configuring with meson..."
 meson setup build \
     --prefix="$GFTP_PREFIX" \
     --buildtype=release \
-    -Dgtk_version=3
+    -Dgtk2=false -Dgtk3=true
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Error: meson configuration failed${NC}"
     exit 1
 fi
+
+# Convert XPM files in the build directory to PNG for macOS bundle
+echo -e "${YELLOW}Converting XPM icons to PNG in build directory...${NC}"
+for xpm_file in "$GFTP_SOURCE/build/docs/sample.gftp/"*.xpm; do
+    if [ -f "$xpm_file" ]; then
+        png_file="${xpm_file%.xpm}.png"
+        convert "$xpm_file" "$png_file"
+        echo "  Converted $(basename "$xpm_file") to $(basename "$png_file")"
+    fi
+done
+echo -e "${GREEN}✓ XPM icons converted to PNG in build directory${NC}"
+echo ""
 
 # Build
 echo "  Building..."
@@ -144,25 +189,19 @@ fi
 echo -e "${GREEN}✓ gFTP built and installed${NC}"
 echo ""
 
-# Step 3: Install gftp-text to ~/.local/bin
-echo -e "${YELLOW}Step 3: Installing gftp-text...${NC}"
+# Modify gftprc to use PNG icons instead of XPM
+echo -e "${YELLOW}Modifying gftprc to use PNG icons...${NC}"
+GFTPRC_PATH="$GFTP_PREFIX/share/gftp/gftprc"
 
-INSTALL_DIR="$HOME/.local/bin"
-SOURCE_FILE="build/src/text/gftp-text"
-DEST_FILE="$INSTALL_DIR/gftp-text"
-
-if [ -f "$SOURCE_FILE" ]; then
-    mkdir -p "$INSTALL_DIR"
-    echo "  Installing gftp-text to $DEST_FILE..."
-    cp "$SOURCE_FILE" "$DEST_FILE"
-    chmod +x "$DEST_FILE"
-    echo -e "${GREEN}✓ gftp-text installed${NC}"
-else
-    echo -e "${YELLOW}  Warning: gftp-text not found at $SOURCE_FILE${NC}"
-fi
+# Replace .xpm with .png in ext= lines
+sed -i '' -e 's/\.xpm:/\.png:/g' "$GFTPRC_PATH"
+# Special case for .png/.jpg which also referred to img.xpm
+sed -i '' -e 's/\.png:img\.xpm:/\.png:img\.png:/g' "$GFTPRC_PATH"
+sed -i '' -e 's/\.jpg:img\.xpm:/\.jpg:img\.png:/g' "$GFTPRC_PATH"
+echo -e "${GREEN}✓ gftprc modified to use PNG icons${NC}"
 echo ""
 
-# Step 4: Create .icns file from SVG
+# Step 4: Creating .icns file from SVG
 echo -e "${YELLOW}Step 4: Creating .icns file from SVG...${NC}"
 SVG_ICON="$GFTP_SOURCE/icons/scalable/gftp.svg"
 ICNS_FILE="$GFTP_SOURCE/gftp.icns"
@@ -211,86 +250,181 @@ else
 fi
 echo ""
 
-# Step 5: Create app bundle (if AppBundleGenerator is available)
-if [ "$CREATE_BUNDLE" = true ]; then
-    echo -e "${YELLOW}Step 5: Creating macOS app bundle...${NC}"
+# Step 5: Create app bundle
+echo -e "${YELLOW}Step 5: Creating macOS app bundle...${NC}"
 
-    BUNDLE_ARGS=()
-    BUNDLE_ARGS+=("--identifier" "$BUNDLE_ID")
-    BUNDLE_ARGS+=("--version" "$VERSION")
-    BUNDLE_ARGS+=("--category" "public.app-category.utilities")
-    BUNDLE_ARGS+=("--min-os" "11.0")
-    BUNDLE_ARGS+=("--sign" "-")
-    BUNDLE_ARGS+=("--hardened-runtime")
-    BUNDLE_ARGS+=("--allow-dyld-vars")
-    
-    # Stage dependencies from both gFTP prefix and Homebrew
-    BUNDLE_ARGS+=("--stage-dependencies" "$GFTP_PREFIX")
-    BUNDLE_ARGS+=("--stage-dependencies" "$HOMEBREW_PREFIX")
-
-    if [ -n "$ICNS_FILE" ] && [ -f "$ICNS_FILE" ]; then
-        BUNDLE_ARGS+=("--icon" "$ICNS_FILE")
-    fi
-
-    echo "  Running AppBundleGenerator..."
-    
-    "$APP_BUNDLE_GENERATOR" \
-        "${BUNDLE_ARGS[@]}" \
-        "$APP_NAME" \
-        "$DEST_DIR" \
-        "$GFTP_PREFIX/bin/gftp-gtk"
-
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Error: AppBundleGenerator failed${NC}"
-        exit 1
-    fi
-
-    BUNDLE_PATH="$DEST_DIR/$APP_NAME.app"
-    echo -e "${GREEN}✓ App bundle created${NC}"
-    echo ""
-
-    # Step 6: Verify the bundle
-    echo -e "${YELLOW}Step 6: Verifying app bundle...${NC}"
-
-    if [ ! -d "$BUNDLE_PATH" ]; then
-        echo -e "${RED}Error: Bundle not created at $BUNDLE_PATH${NC}"
-        exit 1
-    fi
-
-    echo "  Checking bundle structure..."
-    if [ -d "$BUNDLE_PATH/Contents/MacOS" ]; then
-        echo "  ✓ MacOS directory exists"
-    fi
-    
-    if [ -f "$BUNDLE_PATH/Contents/Info.plist" ]; then
-        echo "  ✓ Info.plist exists"
-    fi
-
-    # Find the main executable
-    MAIN_BINARY=""
-    for candidate in "$BUNDLE_PATH/Contents/Resources/bin/gftp-gtk" \
-                     "$BUNDLE_PATH/Contents/MacOS/gftp-gtk" \
-                     "$BUNDLE_PATH/Contents/MacOS/gFTP"; do
-        if [ -f "$candidate" ] && file "$candidate" 2>/dev/null | grep -q "Mach-O"; then
-            MAIN_BINARY="$candidate"
-            echo "  ✓ Found executable: $(basename $(dirname $candidate))/$(basename $candidate)"
-            break
-        fi
-    done
-
-    if [ -n "$MAIN_BINARY" ]; then
-        echo "  Checking dylib dependencies..."
-        BAD_DEPS=$(otool -L "$MAIN_BINARY" 2>/dev/null | grep -v "@" | grep -v "/usr/lib" | grep -v ":" | wc -l | tr -d ' ')
-        if [ "$BAD_DEPS" -gt 0 ]; then
-            echo -e "${YELLOW}  Warning: Found $BAD_DEPS non-relocatable dependencies${NC}"
-            otool -L "$MAIN_BINARY" | grep -v "@" | grep -v "/usr/lib" | grep -v ":"
-        else
-            echo "  ✓ All dependencies are relocatable"
-        fi
-    fi
-
-    echo ""
+# Remove existing bundle
+if [ -d "$DEST_DIR/$APP_NAME.app" ]; then
+    warn "Removing existing bundle: $DEST_DIR/$APP_NAME.app"
+    rm -rf "$DEST_DIR/$APP_NAME.app"
 fi
+
+# Create a wrapper script that sets up the environment
+WRAPPER_SCRIPT="/tmp/gftp-launcher.sh"
+cat > "$WRAPPER_SCRIPT" << 'EOF'
+#!/bin/bash
+# gFTP launcher script
+BUNDLE_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
+export GTK_PATH="$BUNDLE_DIR/Contents/Resources"
+export GDK_PIXBUF_MODULE_FILE="$BUNDLE_DIR/Contents/Resources/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+export XDG_DATA_DIRS="$BUNDLE_DIR/Contents/Resources/share:$XDG_DATA_DIRS"
+
+# Set GFTP_CONFIG_DIR to point to bundled resources for default config lookups
+# This will be used by lib/misc.c on macOS if GFTP_CONFIG_DIR is set.
+export GFTP_CONFIG_DIR="$BUNDLE_DIR/Contents/Resources/share/gftp"
+
+# Define the user's config directory (where gFTP expects writable config)
+# This mimics the C code's default if GFTP_CONFIG_DIR is not set or ignored.
+USER_HOME=$(eval echo "~") # Safely get home directory
+USER_CONFIG_DIR="$USER_HOME/Library/gFTP"
+USER_GFTPRC="$USER_CONFIG_DIR/gftprc"
+BUNDLED_GFTPRC="$BUNDLE_DIR/Contents/Resources/share/gftp/gftprc"
+BUNDLED_BOOKMARKS="$BUNDLE_DIR/Contents/Resources/share/gftp/bookmarks"
+USER_BOOKMARKS="$USER_CONFIG_DIR/bookmarks"
+
+# Ensure the user's config directory exists
+mkdir -p "$USER_CONFIG_DIR"
+
+# Copy default gftprc and bookmarks if they don't exist in the user's config
+if [ ! -f "$USER_GFTPRC" ]; then
+    echo "Initializing user's gftprc from bundle defaults..."
+    if [ -f "$BUNDLED_GFTPRC" ]; then
+        cp "$BUNDLED_GFTPRC" "$USER_GFTPRC"
+    else
+        echo "Warning: Bundled gftprc not found at $BUNDLED_GFTPRC"
+    fi
+fi
+
+if [ ! -f "$USER_BOOKMARKS" ]; then
+    echo "Initializing user's bookmarks from bundle defaults..."
+    if [ -f "$BUNDLED_BOOKMARKS" ]; then
+        cp "$BUNDLED_BOOKMARKS" "$USER_BOOKMARKS"
+    else
+        echo "Warning: Bundled bookmarks not found at $BUNDLED_BOOKMARKS"
+    fi
+fi
+
+exec "$BUNDLE_DIR/Contents/Resources/bin/gftp-gtk" "$@"
+EOF
+chmod +x "$WRAPPER_SCRIPT"
+
+echo "  Running AppBundleGenerator..."
+
+"$APP_BUNDLE_GENERATOR" \
+    --icon "$ICNS_FILE" \
+    --sign - \
+    --hardened-runtime \
+    --category public.app-category.utilities \
+    --version "$VERSION" \
+    --min-os 12.0 \
+    --stage-dependencies "$GFTP_PREFIX" \
+    --stage-dependencies "$HOMEBREW_PREFIX" \
+    "$APP_NAME" \
+    "$DEST_DIR" \
+    "$WRAPPER_SCRIPT"
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: AppBundleGenerator failed${NC}"
+    exit 1
+fi
+
+BUNDLE_PATH="$DEST_DIR/$APP_NAME.app"
+echo -e "${GREEN}✓ App bundle created${NC}"
+echo ""
+
+# Explicitly copy gftp-gtk into the bundle's Resources/bin
+echo -e "${YELLOW}Copying gftp-gtk to bundle...${NC}"
+mkdir -p "$BUNDLE_PATH/Contents/Resources/bin"
+cp "$GFTP_PREFIX/bin/gftp-gtk" "$BUNDLE_PATH/Contents/Resources/bin/gftp-gtk"
+echo -e "${GREEN}✓ gftp-gtk copied to bundle${NC}"
+echo ""
+
+# Explicitly copy default config files (gftprc and bookmarks) into the bundle
+echo -e "${YELLOW}Copying default config files to bundle...${NC}"
+mkdir -p "$BUNDLE_PATH/Contents/Resources/share/gftp"
+cp "$GFTP_PREFIX/share/gftp/gftprc" "$BUNDLE_PATH/Contents/Resources/share/gftp/gftprc"
+cp "$GFTP_PREFIX/share/gftp/bookmarks" "$BUNDLE_PATH/Contents/Resources/share/gftp/bookmarks"
+echo -e "${GREEN}✓ Default config files copied to bundle${NC}"
+echo ""
+
+# Explicitly copy images and icons into the bundle
+echo -e "${YELLOW}Copying images and icons to bundle...${NC}"
+
+# Copy gftp.png from share/gftp
+mkdir -p "$BUNDLE_PATH/Contents/Resources/share/gftp"
+cp "$GFTP_PREFIX/share/gftp/gftp.png" "$BUNDLE_PATH/Contents/Resources/share/gftp/gftp.png"
+
+# Copy XPM files from share/gftp (user requested disabling, but ensuring they exist first)
+for xpm_file in "dotdot.xpm" "doc.xpm" "dir.xpm" "exe.xpm" "gftp-logo.xpm" "img.xpm" "linkdir.xpm" "linkfile.xpm" "man.xpm" "open_dir.xpm" "rpm.xpm" "tar.xpm" "txt.xpm" "sound.xpm" "world.xpm" "deb.xpm"; do
+    if [ -f "$GFTP_PREFIX/share/gftp/$xpm_file" ]; then
+        cp "$GFTP_PREFIX/share/gftp/$xpm_file" "$BUNDLE_PATH/Contents/Resources/share/gftp/$xpm_file"
+    fi
+done
+
+# Copy hicolor icons
+# meson installs these into directories like share/icons/hicolor/16x16/apps
+# We need to copy the entire hicolor directory structure
+if [ -d "$GFTP_PREFIX/share/icons/hicolor" ]; then
+    cp -R "$GFTP_PREFIX/share/icons/hicolor" "$BUNDLE_PATH/Contents/Resources/share/icons/"
+fi
+
+echo -e "${GREEN}✓ Images and icons copied to bundle${NC}"
+echo ""
+
+# Remove unwanted Qt dependencies
+echo -e "${YELLOW}Cleaning unwanted Qt and Node.js dependencies...${NC}"
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "Qt*.framework" -exec rm -rf {} +
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libqhull_r*.dylib" -exec rm -rf {} +
+rm -rf "$BUNDLE_PATH/Contents/Resources/share/qt"
+
+# Remove unwanted Node.js dependencies
+rm -rf "$BUNDLE_PATH/Contents/Resources/lib/node_modules"
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libnode*.dylib" -exec rm -rf {} +
+rm -rf "$BUNDLE_PATH/Contents/Resources/etc/bash_completion.d/npm"
+echo -e "${GREEN}✓ Unwanted dependencies cleaned${NC}"
+echo ""
+
+# Step 6: Verify the bundle
+echo -e "${YELLOW}Step 6: Verifying app bundle...${NC}"
+
+if [ ! -d "$BUNDLE_PATH" ]; then
+    echo -e "${RED}Error: Bundle not created at $BUNDLE_PATH${NC}"
+    exit 1
+fi
+
+echo "  Checking bundle structure..."
+if [ -d "$BUNDLE_PATH/Contents/MacOS" ]; then
+    echo "  ✓ MacOS directory exists"
+fi
+
+if [ -f "$BUNDLE_PATH/Contents/Info.plist" ]; then
+    echo "  ✓ Info.plist exists"
+fi
+
+# Find the main executable
+MAIN_BINARY=""
+for candidate in "$BUNDLE_PATH/Contents/MacOS/gftp-gtk" \
+                 "$BUNDLE_PATH/Contents/MacOS/gFTP" \
+                 "$BUNDLE_PATH/Contents/MacOS/gftp-launcher.sh"; do
+    if [ -f "$candidate" ] && file "$candidate" 2>/dev/null | grep -q "Mach-O"; then
+        MAIN_BINARY="$candidate"
+        echo "  ✓ Found executable: $(basename $(dirname $candidate))/$(basename $candidate)"
+        break
+    fi
+done
+
+if [ -n "$MAIN_BINARY" ]; then
+    echo "  Checking dylib dependencies..."
+    BAD_DEPS=$(otool -L "$MAIN_BINARY" 2>/dev/null | grep -v "@" | grep -v "/usr/lib" | grep -v ":" | wc -l | tr -d ' ')
+    if [ "$BAD_DEPS" -gt 0 ]; then
+        echo -e "${YELLOW}  Warning: Found $BAD_DEPS non-relocatable dependencies${NC}"
+        otool -L "$MAIN_BINARY" | grep -v "@" | grep -v "/usr/lib" | grep -v ":"
+    else
+        echo "  ✓ All dependencies are relocatable"
+    fi
+fi
+
+echo ""
 
 # Summary
 echo -e "${GREEN}=====================================${NC}"
@@ -299,12 +433,10 @@ echo -e "${GREEN}=====================================${NC}"
 echo ""
 echo -e "${BLUE}Installed files:${NC}"
 echo "  gFTP GTK: $GFTP_PREFIX/bin/gftp-gtk"
-if [ -f "$DEST_FILE" ]; then
-    echo "  gFTP Text: $DEST_FILE"
-fi
+echo "  gFTP Text: $GFTP_PREFIX/bin/gftp-text (included as resource)"
 echo ""
 
-if [ "$CREATE_BUNDLE" = true ] && [ -d "$BUNDLE_PATH" ]; then
+if [ -d "$BUNDLE_PATH" ]; then
     echo -e "${BLUE}App bundle:${NC}"
     echo "  $BUNDLE_PATH"
     echo ""

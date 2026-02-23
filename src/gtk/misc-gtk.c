@@ -811,28 +811,20 @@ void display_cached_logs (void)
 char * get_image_path (char *filename)
 {
    //DEBUG_PRINT_FUNC
-   char *path1 = NULL, *path2 = NULL, *found = NULL;
+   char *path1 = NULL, *found = NULL;
 
-   // see lib/misc.c -> gftp_get_share_dir ()
+   // Use gftp_get_share_dir(), which is controlled by GFTP_SHARE_DIR env var
    path1 = g_strconcat (gftp_get_share_dir (), "/", filename, NULL);
    if (access (path1, F_OK) == 0) {
       found = path1;
    }
 
    if (!found) {
-      path2 = g_strconcat ("/usr/share/gftp/", filename, NULL);
-      if (access (path2, F_OK) == 0) {
-         found = path2;
-      }
-   }
-   if (!found) {
+      // If not found, report error. Removed hardcoded /usr/share/gftp fallback.
       if (path1) fprintf(stderr, "* %s: %s not found\n", PACKAGE_NAME, path1);
-      if (path2 && strcmp(path1,path2) != 0)
-                 fprintf(stderr, "* %s: %s not found\n", PACKAGE_NAME, path2);
    }
 
    if (path1 && path1 != found) g_free (path1);
-   if (path2 && path2 != found) g_free (path2);
 
    return (found);
 }
