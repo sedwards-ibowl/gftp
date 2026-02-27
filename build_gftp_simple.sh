@@ -20,6 +20,22 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Function to clean up build artifacts
+clean() {
+    echo -e "${YELLOW}Cleaning up build artifacts...${NC}"
+    rm -rf "$GFTP_SOURCE/build"
+    rm -rf "$GFTP_PREFIX"
+    rm -f "$HOME/.local/bin/gftp-gtk"
+    rm -f "$HOME/.local/bin/gftp-text"
+    echo -e "${GREEN}✓ Clean up complete.${NC}"
+    exit 0
+}
+
+# Check for 'clean' argument
+if [ "$1" == "clean" ]; then
+    clean
+fi
+
 echo -e "${GREEN}=====================================${NC}"
 echo -e "${GREEN}  gFTP Simple Build (Homebrew GTK)${NC}"
 echo -e "${GREEN}=====================================${NC}"

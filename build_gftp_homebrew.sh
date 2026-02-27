@@ -19,11 +19,27 @@ set -e  # Exit on error
 HOMEBREW_PREFIX="$(brew --prefix)"
 GFTP_PREFIX="$HOME/source/gftp/gftp-install"
 GFTP_SOURCE="$(cd "$(dirname "$0")" && pwd)"
-APP_BUNDLE_GENERATOR="${APP_BUNDLE_GENERATOR:-/Users/sedwards/source/AppBundleGenerator/AppBundleGenerator}"
 DEST_DIR="${DEST_DIR:-.}"
 APP_NAME="gFTP"
 BUNDLE_ID="org.gftp.gftp-gtk"
 VERSION="2.9.1b"
+
+# --- Find AppBundleGenerator ---
+# 1. Use environment variable if set
+# 2. Otherwise, search in PATH
+# 3. Check for ../AppBundleGenerator
+# 4. If not found, provide instructions
+APP_BUNDLE_GENERATOR=""
+if [ -n "$APP_BUNDLE_GENERATOR_PATH" ]; then
+    if [ -x "$APP_BUNDLE_GENERATOR_PATH" ]; then
+        APP_BUNDLE_GENERATOR="$APP_BUNDLE_GENERATOR_PATH"
+    fi
+elif command -v AppBundleGenerator &>/dev/null; then
+    APP_BUNDLE_GENERATOR=$(command -v AppBundleGenerator)
+elif [ -x "../AppBundleGenerator/AppBundleGenerator" ]; then
+    APP_BUNDLE_GENERATOR="../AppBundleGenerator/AppBundleGenerator"
+fi
+# --- End Find AppBundleGenerator ---
 
 # Colors for output
 RED='\033[0;31m'
@@ -101,12 +117,10 @@ if ! command -v ninja &> /dev/null; then
 fi
 
 # Check for AppBundleGenerator
-if [ ! -f "$APP_BUNDLE_GENERATOR" ]; then
-    echo -e "${YELLOW}Warning: AppBundleGenerator not found at: $APP_BUNDLE_GENERATOR${NC}"
-    echo "  To build it: cd ~/source/AppBundleGenerator && make"
-    exit 1
+if [ -z "$APP_BUNDLE_GENERATOR" ]; then
+    error "AppBundleGenerator not found. Please ensure the 'AppBundleGenerator' executable is in your PATH or set the APP_BUNDLE_GENERATOR_PATH environment variable. You can download it from: https://github.com/sedwards-ibowl/AppBundleGenerator"
 fi
-echo "  ✓ AppBundleGenerator found"
+info "Found AppBundleGenerator at: $APP_BUNDLE_GENERATOR"
 
 # Check for ImageMagick 'convert'
 if ! command -v convert &> /dev/null; then

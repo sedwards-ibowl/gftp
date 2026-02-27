@@ -5,8 +5,24 @@ INSTALL_PREFIX="${INSTALL_PREFIX:-./gftp-bundle-content}"
 BUNDLE_NAME="gFTP.app"
 BUNDLE_ID="org.gftp.gftp-gtk"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_BUNDLE_GENERATOR="${APP_BUNDLE_GENERATOR:-\/Users\/sedwards\/source\/AppBundleGenerator\/AppBundleGenerator}"
 DEST_DIR="${1:-.}"
+
+# --- Find AppBundleGenerator ---
+# 1. Use environment variable if set
+# 2. Otherwise, search in PATH
+# 3. Check for ../AppBundleGenerator
+# 4. If not found, provide instructions
+APP_BUNDLE_GENERATOR=""
+if [ -n "$APP_BUNDLE_GENERATOR_PATH" ]; then
+    if [ -x "$APP_BUNDLE_GENERATOR_PATH" ]; then
+        APP_BUNDLE_GENERATOR="$APP_BUNDLE_GENERATOR_PATH"
+    fi
+elif command -v AppBundleGenerator &>/dev/null; then
+    APP_BUNDLE_GENERATOR=$(command -v AppBundleGenerator)
+elif [ -x "../AppBundleGenerator/AppBundleGenerator" ]; then
+    APP_BUNDLE_GENERATOR="../AppBundleGenerator/AppBundleGenerator"
+fi
+# --- End Find AppBundleGenerator ---
 
 # Colors for output
 RED='\033[0;31m'
@@ -28,6 +44,14 @@ warn() {
     echo -e "${YELLOW}WARN: $1${NC}"
 }
 
+# --- Prerequisite Check ---
+# Verify AppBundleGenerator is found
+if [ -z "$APP_BUNDLE_GENERATOR" ]; then
+    error "AppBundleGenerator not found. Please ensure the 'AppBundleGenerator' executable is in your PATH or set the APP_BUNDLE_GENERATOR_PATH environment variable. You can download it from: https://github.com/sedwards-ibowl/AppBundleGenerator"
+fi
+info "Found AppBundleGenerator at: $APP_BUNDLE_GENERATOR"
+# --- End Prerequisite Check ---
+
 # Verify install prefix exists
 if [ ! -d "$INSTALL_PREFIX" ]; then
     error "Install prefix not found: $INSTALL_PREFIX. Please run ./build_gftp_homebrew.sh first."
@@ -37,10 +61,6 @@ fi
 GFTP_GTK="$INSTALL_PREFIX/bin/gftp-gtk"
 if [ ! -f "$GFTP_GTK" ]; then
     error "gftp-gtk not found at: $GFTP_GTK"
-fi
-
-if [ ! -f "$APP_BUNDLE_GENERATOR" ]; then
-    error "AppBundleGenerator not found at: $APP_BUNDLE_GENERATOR"
 fi
 
 

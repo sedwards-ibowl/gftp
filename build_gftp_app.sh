@@ -4,27 +4,57 @@
 #
 # This script:
 # 1. Builds gFTP with meson
-# 2. Installs to jhbuild prefix
+# 2. Installs to local prefix
 # 3. Creates relocatable app bundle with all dependencies
 #
 # Requirements:
-# - jhbuild with GTK3 stack installed
+# - Homebrew with GTK3 stack installed
 # - AppBundleGenerator tool
 # - meson, ninja
 #
 
-set -e  # Exit on error
-
-
+set -e # Exit on error
 
 # Configuration
-JHBUILD_PREFIX="${JHBUILD_PREFIX:-$HOME/source/jhbuild/install}"
+HOMEBREW_PREFIX=$(brew --prefix)
 GFTP_SOURCE="$(cd "$(dirname "$0")" && pwd)"
-APP_BUNDLE_GENERATOR="${APP_BUNDLE_GENERATOR:-$HOME/source/AppBundleGenerator/AppBundleGenerator}"
 DEST_DIR="${DEST_DIR:-$HOME/Desktop}"
 APP_NAME="gFTP"
 BUNDLE_ID="org.gftp.gftp-gtk"
 VERSION="2.9.1b"
+INSTALL_PREFIX="$GFTP_SOURCE/gftp-install"
+
+# Function to clean up build artifacts
+clean() {
+    echo -e "${YELLOW}Cleaning up build artifacts...${NC}"
+    rm -rf "$GFTP_SOURCE/build"
+    rm -rf "$INSTALL_PREFIX"
+    rm -rf "$DEST_DIR/$APP_NAME.app"
+    echo -e "${GREEN}✓ Clean up complete.${NC}"
+    exit 0
+}
+
+# Check for 'clean' argument
+if [ "$1" == "clean" ]; then
+    clean
+fi
+
+# --- Find AppBundleGenerator ---
+# 1. Use environment variable if set
+# 2. Otherwise, search in PATH
+# 3. Check for ../AppBundleGenerator
+# 4. If not found, provide instructions
+APP_BUNDLE_GENERATOR=""
+if [ -n "$APP_BUNDLE_GENERATOR_PATH" ]; then
+    if [ -x "$APP_BUNDLE_GENERATOR_PATH" ]; then
+        APP_BUNDLE_GENERATOR="$APP_BUNDLE_GENERATOR_PATH"
+    fi
+elif command -v AppBundleGenerator &>/dev/null; then
+    APP_BUNDLE_GENERATOR=$(command -v AppBundleGenerator)
+elif [ -x "../AppBundleGenerator/AppBundleGenerator" ]; then
+    APP_BUNDLE_GENERATOR="../AppBundleGenerator/AppBundleGenerator"
+fi
+# --- End Find AppBundleGenerator ---
 
 # Colors for output
 RED='\033[0;31m'
@@ -38,7 +68,7 @@ echo -e "${GREEN}  gFTP macOS App Bundle Builder${NC}"
 echo -e "${GREEN}=====================================${NC}"
 echo ""
 echo -e "${BLUE}Configuration:${NC}"
-echo "  jhbuild prefix: $JHBUILD_PREFIX"
+echo "  Homebrew prefix: $HOMEBREW_PREFIX"
 echo "  Source directory: $GFTP_SOURCE"
 echo "  AppBundleGenerator: $APP_BUNDLE_GENERATOR"
 echo "  Destination: $DEST_DIR"
@@ -49,25 +79,18 @@ echo ""
 # Verify prerequisites
 echo -e "${YELLOW}Checking prerequisites...${NC}"
 
-if [ ! -f "$APP_BUNDLE_GENERATOR" ]; then
-    echo -e "${RED}Error: AppBundleGenerator not found at: $APP_BUNDLE_GENERATOR${NC}"
-    echo "Please build AppBundleGenerator first:"
-    echo "  cd ~/source/AppBundleGenerator && make"
+if [ -z "$APP_BUNDLE_GENERATOR" ]; then
+    echo -e "${RED}Error: AppBundleGenerator not found. Please ensure the 'AppBundleGenerator' executable is in your PATH or set the APP_BUNDLE_GENERATOR_PATH environment variable. You can download it from: https://github.com/sedwards-ibowl/AppBundleGenerator"
     exit 1
 fi
+info "Found AppBundleGenerator at: $APP_BUNDLE_GENERATOR"
 
-if [ ! -d "$JHBUILD_PREFIX" ]; then
-    echo -e "${RED}Error: jhbuild prefix not found at: $JHBUILD_PREFIX${NC}"
-    echo "Please build GTK3 stack with jhbuild first"
-    exit 1
-fi
-
-if ! command -v meson &> /dev/null; then
+if ! command -v meson &>/dev/null; then
     echo -e "${RED}Error: meson not found in PATH${NC}"
     exit 1
 fi
 
-if ! command -v ninja &> /dev/null; then
+if ! command -v ninja &>/dev/null; then
     echo -e "${RED}Error: ninja not found in PATH${NC}"
     exit 1
 fi
@@ -76,30 +99,17 @@ echo -e "${GREEN}✓ All prerequisites found${NC}"
 echo ""
 
 # Step 1: Ensure gFTP is built and installed
-echo -e "${YELLOW}Step 1: Ensuring gFTP is installed...${NC}"
+echo -e "${YELLOW}Step 1: Building and installing gFTP...${NC}"
 
 cd "$GFTP_SOURCE"
 
-# Set up jhbuild environment
-export PATH="$JHBUILD_PREFIX/bin:$PATH"
-export PKG_CONFIG_PATH="$JHBUILD_PREFIX/lib/pkgconfig:$JHBUILD_PREFIX/share/pkgconfig"
-export LD_LIBRARY_PATH="$JHBUILD_PREFIX/lib:$LD_LIBRARY_PATH"
+# Set up Homebrew environment
+export PKG_CONFIG_PATH="$HOMEBREW_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
 
-# Check if gftp-gtk binary exists and is recent
-if [ -f "$JHBUILD_PREFIX/bin/gftp-gtk" ]; then
-    BINARY_AGE=$(find "$JHBUILD_PREFIX/bin/gftp-gtk" -mmin +60 2>/dev/null | wc -l)
-    if [ "$BINARY_AGE" -eq 0 ]; then
-        echo "  gFTP binary is recent (< 1 hour old), skipping rebuild"
-    else
-        echo "  gFTP binary is old, rebuilding via jhbuild..."
-        jhbuild -f jhbuildrc buildone gftp
-    fi
-else
-    echo "  gFTP not found, building via jhbuild..."
-    jhbuild -f jhbuildrc buildone gftp
-fi
+meson setup build --prefix="$INSTALL_PREFIX"
+ninja -C build install
 
-echo -e "${GREEN}✓ gFTP built and installed${NC}"
+echo -e "${GREEN}✓ gFTP built and installed to $INSTALL_PREFIX${NC}"
 echo ""
 
 # Step 2: Create .icns file from SVG
@@ -153,21 +163,21 @@ BUNDLE_ARGS+=("--min-os" "12.0")
 BUNDLE_ARGS+=("--sign" "-")
 BUNDLE_ARGS+=("--hardened-runtime")
 BUNDLE_ARGS+=("--allow-dyld-vars")
-BUNDLE_ARGS+=("--stage-dependencies" "$JHBUILD_PREFIX")
+BUNDLE_ARGS+=("--stage-dependencies" "$INSTALL_PREFIX")
 
 if [ -n "$ICNS_FILE" ] && [ -f "$ICNS_FILE" ]; then
     BUNDLE_ARGS+=("--icon" "$ICNS_FILE")
 fi
 
 echo "  Running AppBundleGenerator..."
-echo "  Command: $APP_BUNDLE_GENERATOR ${BUNDLE_ARGS[*]} \"$APP_NAME\" \"$DEST_DIR\" \"$JHBUILD_PREFIX/bin/gftp-gtk\""
+echo "  Command: $APP_BUNDLE_GENERATOR ${BUNDLE_ARGS[*]} \"$APP_NAME\" \"$DEST_DIR\" \"$INSTALL_PREFIX/bin/gftp-gtk\""
 echo ""
 
 "$APP_BUNDLE_GENERATOR" \
     "${BUNDLE_ARGS[@]}" \
     "$APP_NAME" \
     "$DEST_DIR" \
-    "$JHBUILD_PREFIX/bin/gftp-gtk"
+    "$INSTALL_PREFIX/bin/gftp-gtk"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Error: AppBundleGenerator failed${NC}"
@@ -277,6 +287,5 @@ fi
 echo "Installing gftp-text to $DEST_FILE..."
 cp "$SOURCE_FILE" "$DEST_FILE"
 chmod +x "$DEST_FILE"
-
 
 

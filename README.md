@@ -22,11 +22,10 @@ The gFTP file transfer client. http://www.gftp.org
 
 ## How do I install gFTP?
 
-  ```
-  meson build
-  ninja -C build
-  ninja -C build install
-  ```
+  For general installation instructions, please see the `QUICK_START.md` file.
+
+  For macOS specific instructions, please see the `MACOS.md` file.
+
 
 ## What systems is gFTP known to run on?
 

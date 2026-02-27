@@ -29,10 +29,9 @@ add_project_arguments(f'-DVERSION="@project_version@"', language:'c')
 # Suppress unused parameter warnings (common in callback functions)
 add_project_arguments('-Wno-unused-parameter', language:'c')
 
-#TODO: Set dep versions
-glib = dependency('glib-2.0', required: true)
-gtk2 = dependency('gtk+-2.0', required: get_option('gtkport') and get_option('gtk2'))
-gtk3 = dependency('gtk+-3.0', required: get_option('gtkport') and get_option('gtk3'))
+glib = dependency('glib-2.0', version: '>=2.32', required: true)
+gtk2 = dependency('gtk+-2.0', version: '>=2.14', required: get_option('gtkport') and get_option('gtk2'))
+gtk3 = dependency('gtk+-3.0', version: '>=3.0', required: get_option('gtkport') and get_option('gtk3'))
 ssl = dependency('openssl', required: get_option('ssl'))
 
 # Check for gtk-mac-integration on macOS
