@@ -7,7 +7,8 @@
 ---
 
 ## 1 - Task Summary (Required)
-**One sentence:** We need to fix he missing icons for files, folders and binaries
+**One sentence:** 
+We need to fix he missing icons for files, folders and binaries, ensure they are included in the gFTP.app bundle and able to be visable
 
 
 ---
@@ -21,7 +22,7 @@
 
 ## 3 - Classification Gate (Required)
 
-- ☐ This is corrective work (bug/regression), not planned decomposition
+- [x] This is corrective work (bug/regression), not planned decomposition
 - ☐ This is NOT a feature/improvement request in disguise
 - ☐ If fix requires new behavior beyond restoring intended behavior, I will reclassify as Feature/Improvement
 
@@ -45,7 +46,6 @@ So users can know if they are downloading the correct type of file or need to ch
 ## 6 - Desired Outcome (Required)
 What should be true when this work is “done”? (bullet list)
 
- - Legacy icons in icons/legacy are converted to proper *.png amd *.svg images 
  - Host side all files and folders icons are displayed
  - Client side all files and folders icons are displayed
 
@@ -55,7 +55,7 @@ What should be true when this work is “done”? (bullet list)
 ## 7 - Rough Expectations (Optional)
 What do you *think* should happen? (It’s okay if this is wrong or incomplete.)
 
-When opening the application, and seeing he currrent list of folder and filess in the local left hand view, I should see icons of various types and the same when connecing to the remote host
+When opening the application, when viewing the local and remote list of folder and files, weshould see icons of various types and the same when connecing to the remote host
 
 ---
 
@@ -117,18 +117,159 @@ If yes, include links or keywords to search for.
 
 In the past I've had to use tools lik sips and ImageMagick to converty legacy .xpm icons from X11 hertitage to make properly rendered *.png and *.svg files
 
+
+The newly converted files are located in the gftp folder in
+.
+├── 16x16
+│   ├── apps
+│   │   ├── deb.png
+│   │   ├── diff.png
+│   │   ├── dir.png
+│   │   ├── doc.png
+│   │   ├── dotdot.png
+│   │   ├── exe.png
+│   │   ├── gftp-logo.png
+│   │   ├── img.png
+│   │   ├── linkdir.png
+│   │   ├── linkfile.png
+│   │   ├── man.png
+│   │   ├── open_dir.png
+│   │   ├── rpm.png
+│   │   ├── sound.png
+│   │   ├── tar.png
+│   │   ├── txt.png
+│   │   └── world.png
+│   └── gftp.png
+├── 22x22
+│   ├── apps
+│   │   ├── deb.png
+│   │   ├── diff.png
+│   │   ├── dir.png
+│   │   ├── doc.png
+│   │   ├── dotdot.png
+│   │   ├── exe.png
+│   │   ├── gftp-logo.png
+│   │   ├── img.png
+│   │   ├── linkdir.png
+│   │   ├── linkfile.png
+│   │   ├── man.png
+│   │   ├── open_dir.png
+│   │   ├── rpm.png
+│   │   ├── sound.png
+│   │   ├── tar.png
+│   │   ├── txt.png
+│   │   └── world.png
+│   └── gftp.png
+├── 24x24
+│   ├── apps
+│   │   ├── deb.png
+│   │   ├── diff.png
+│   │   ├── dir.png
+│   │   ├── doc.png
+│   │   ├── dotdot.png
+│   │   ├── exe.png
+│   │   ├── gftp-logo.png
+│   │   ├── img.png
+│   │   ├── linkdir.png
+│   │   ├── linkfile.png
+│   │   ├── man.png
+│   │   ├── open_dir.png
+│   │   ├── rpm.png
+│   │   ├── sound.png
+│   │   ├── tar.png
+│   │   ├── txt.png
+│   │   └── world.png
+│   └── gftp.png
+├── 32x32
+│   ├── apps
+│   │   ├── deb.png
+│   │   ├── diff.png
+│   │   ├── dir.png
+│   │   ├── doc.png
+│   │   ├── dotdot.png
+│   │   ├── exe.png
+│   │   ├── gftp-logo.png
+│   │   ├── img.png
+│   │   ├── linkdir.png
+│   │   ├── linkfile.png
+│   │   ├── man.png
+│   │   ├── open_dir.png
+│   │   ├── rpm.png
+│   │   ├── sound.png
+│   │   ├── tar.png
+│   │   ├── txt.png
+│   │   └── world.png
+│   └── gftp.png
+├── 48x48
+│   ├── apps
+│   │   ├── deb.png
+│   │   ├── diff.png
+│   │   ├── dir.png
+│   │   ├── doc.png
+│   │   ├── dotdot.png
+│   │   ├── exe.png
+│   │   ├── gftp-logo.png
+│   │   ├── img.png
+│   │   ├── linkdir.png
+│   │   ├── linkfile.png
+│   │   ├── man.png
+│   │   ├── open_dir.png
+│   │   ├── rpm.png
+│   │   ├── sound.png
+│   │   ├── tar.png
+│   │   ├── txt.png
+│   │   └── world.png
+│   └── gftp.png
+├── fix-icom-gftp.sh
+├── gftp.icns
+├── gftp.iconset
+│   ├── icon_1024x1024.png
+│   ├── icon_1024x1024@2x.png
+│   ├── icon_128x128.png
+│   ├── icon_128x128@2x.png
+│   ├── icon_16x16.png
+│   ├── icon_16x16@2x.png
+│   ├── icon_256x256.png
+│   ├── icon_256x256@2x.png
+│   ├── icon_32x32.png
+│   ├── icon_32x32@2x.png
+│   ├── icon_512x512.png
+│   └── icon_512x512@2x.png
+├── legacy
+│   ├── deb.xpm
+│   ├── diff.xpm
+│   ├── dir.xpm
+│   ├── doc.xpm
+│   ├── dotdot.xpm
+│   ├── exe.xpm
+│   ├── gftp-logo.xpm
+│   ├── img.xpm
+│   ├── linkdir.xpm
+│   ├── linkfile.xpm
+│   ├── man.xpm
+│   ├── open_dir.xpm
+│   ├── rpm.xpm
+│   ├── sound.xpm
+│   ├── tar.xpm
+│   ├── txt.xpm
+│   └── world.xpm
+├── meson.build
+└── scalable
+    └── gftp.svg
+
+
+
 ---
 
 ## 12 - Unknowns / Questions (Optional)
 What are you unsure about? What needs investigation?
 
-Ensure that when building you have reviewed all of the documentation and understand what is required to build a proper macOS bundled app using the correct scripts and the AppBundleGenerator so that the new images are put in the correct place in the gFTP.app bundle
-
+Ensure there are no legacy calls to *.xpm files
 ---
 
 ## 13 - Acceptance Criteria (Required)
 List objective checks that confirm success.
-- [x] if xpm files are found, convert to png and svg files
+- [x] if xpm files are still being called by any code, we need to ensure it is updated to use the correct png filee instead 
 - [x] Ensure the application can find the correct icon in the app bundle
 
 ---

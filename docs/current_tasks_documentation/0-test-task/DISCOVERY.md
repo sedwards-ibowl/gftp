@@ -17,67 +17,83 @@ If certainty exists, it belongs in a later document.
 
 ## Problem Statement
 
-The gFTP application displays missing icons for files, folders, and binaries, particularly when running on macOS. This visual deficiency impairs the user's ability to quickly identify file types, leading to a degraded user experience. The root cause is believed to be an incompatibility with the `.xpm` icon format on macOS and/or incorrect placement/discovery of icon assets within the application bundle.
+The gFTP graphical user interface on macOS is failing to display icons for files, folders, and binaries in both local and remote file listings. This hinders user experience by obscuring visual cues for file types and directory navigation. The root cause appears to be the incompatibility of legacy `.xpm` icon files with macOS and GTK's rendering system, coupled with an inadequate mechanism for bundling and locating appropriate icon assets within the macOS application bundle.
+
+---
 
 ## Current Behavior
 
-- Icons are not displayed for various file and folder types in both the local and remote file views within the gFTP application on macOS.
-- The application is a C-based GTK3 application, initially developed for Linux and subsequently ported to macOS.
-- The `HUMAN_IDEA_BRIEF.md` explicitly states that `.xpm` files are not supported on macOS, even with GTK2 or GTK3.
-- The project's `icons/` directory contains various subdirectories for different icon sizes (e.g., `16x16`, `22x22`, `scalable`), which include `gftp.png` and `gftp.svg`.
-- The `gftp-install/share/gftp` directory, which is part of the installation structure, also contains several `.xpm` files (e.g., `deb.xpm`, `dir.xpm`, `doc.xpm`, `gftp-logo.xpm`).
-- The `gFTP.app/Contents/Resources/share/icons/hicolor` path within the macOS application bundle indicates that some `gftp.png` and `gftp.svg` assets are already packaged.
+- Icons for files, folders, and binaries are not displayed in gFTP on macOS.
+- The `icons/legacy/` directory contains `.xpm` files, which are known to be incompatible with macOS/GTK.
+- There are already converted `.png` and `.svg` icons in various size subdirectories within the `icons/` directory (e.g., `icons/16x16/apps/*.png`, `icons/scalable/*.svg`).
+- The `INTENT_SPEC.md` (unapproved) hints at existing build scripts (`build_and_bundle_gftp.sh`, `packaging/macos/`) that are likely responsible for bundling assets.
+- `gftp.icns` and `gftp.iconset` exist, suggesting an attempt to create a proper macOS application icon, but not necessarily addressing in-app file/folder icons.
+- `gftp.icns` is referenced in the main directory which suggests a build step that generates the icns file from a collection of png files.
+- `MACOS.md` and `docs/BUILDING-MACOS.md` likely contain relevant information about macOS-specific build and bundling processes.
+
+---
 
 ## Desired Outcome
 
-The discovery process aims to achieve the following:
-- A clear understanding of how gFTP's GTK3 interface loads and resolves icons, specifically within the macOS environment.
-- Identification of the exact icon files and formats that are currently failing to load.
-- Pinpointing the precise locations where icon assets are expected to reside within the macOS application bundle.
-- Confirmation of whether all necessary icon assets are present in a supported format, or if conversion/creation of `.png` or `.svg` files from existing `.xpm` files is required.
+- Clarity on the exact process required to convert remaining `.xpm` icons (if any are still actively used by the application logic and not yet converted to `.png`/`.svg`).
+- A defined strategy for integrating the converted and existing `.png`/`.svg` icon assets into the macOS application bundle (`gFTP.app/Contents/Resources/`).
+- An understanding of how gFTP's GTK-based UI on macOS can correctly discover and load these bundled icon assets for display in both local and remote file listings.
+- Identification of any necessary modifications to gFTP's source code (C/GTK) or build system (`meson.build`, shell scripts) to achieve proper icon display.
+- Readiness to define precise technical requirements and implementation steps for fixing the missing icons.
+
+---
 
 ## Scope Characterization
 
-- [ ] Localized (single component / feature)
-- [x] Multi-component (affects UI rendering logic, build system configuration, and asset management)
+- [x] Localized (single component / feature) - Primarily focused on icon handling and display within the gFTP GUI on macOS.
+- [x] Multi-component - Involves icon assets, build scripts, application bundle structure, and potentially GTK UI code.
 - [ ] Systemic / cascading
 - [ ] Unknown / unclear
 
+---
+
 ## Suspected Root Causes (Optional)
 
-- **Possible cause:** GTK3 on macOS inherently lacks support for the `.xpm` icon format, causing any icons supplied in this format to fail loading.
-    - **Supporting observations:** Explicitly stated in the `HUMAN_IDEA_BRIEF.md` that `.xpm` is not supported on macOS.
-    - **Contradicting observations:** None.
+- **Possible cause:** `.xpm` icon files are directly referenced or attempted to be loaded by GTK on macOS, which does not support the format.
+    - **Supporting observations:** `HUMAN_IDEA_BRIEF.md` and `INTENT_SPEC.md` explicitly state `.xpm` incompatibility on macOS. `.xpm` files exist in `icons/legacy/`.
+    - **Contradicting observations:** Converted `.png` and `.svg` files already exist for many icons, suggesting some conversion process might already be in place, but perhaps not fully integrated or correctly referenced.
     - **Confidence level:** High
-- **Possible cause:** Icon files, even if in a supported format, are incorrectly located or not properly registered within the macOS application bundle structure, preventing the application from discovering them at runtime.
-    - **Supporting observations:** Missing icons despite the presence of `gftp.png` and `gftp.svg` in some `icons/` subdirectories. The `gftp.app` structure exists.
-    - **Contradicting observations:** The build system (Meson) generally handles installation paths.
+- **Possible cause:** Icon assets are not correctly packaged or located within the `gFTP.app` bundle in a way that GTK's icon theme system can discover them.
+    - **Supporting observations:** Icons are not displayed, implying a discovery issue. `MACOS.md` and `docs/BUILDING-MACOS.md` likely detail specific macOS bundling requirements.
+    - **Contradicting observations:** None specific at this stage.
     - **Confidence level:** Medium
-- **Possible cause:** The application's internal logic for mapping file types to icon names is flawed or outdated, leading to requests for non-existent or incorrectly named icon assets.
-    - **Supporting observations:** None explicit, but a possibility in a legacy application.
-    - **Contradicting observations:** The problem is described as "missing icons" rather than "wrong icons."
-    - **Confidence level:** Low
-- **Possible cause:** Some icon assets for specific file types are entirely missing from the source tree or build output.
-    - **Supporting observations:** General statement of "missing icons for files, folders and binaries."
-    - **Contradicting observations:** The presence of `deb.xpm`, `dir.xpm`, etc., suggests many basic icons do exist in some format.
-    - **Confidence level:** Low
+- **Possible cause:** gFTP's C/GTK code has incorrect paths or logic for loading icons when running on macOS.
+    - **Supporting observations:** The problem is specific to macOS.
+    - **Contradicting observations:** None specific at this stage.
+    - **Confidence level:** Low (less likely than bundling/format issues but possible)
+
+---
 
 ## Open Questions
 
-- What specific GTK+ API (e.g., `GtkIconTheme`, `GtkImage`, `GdkPixbuf`) is used by gFTP to load and display icons in `src/gtk/listbox.c` and `src/uicommon/gftpui.c`?
-- What are the standard icon search paths and naming conventions for GTK3 applications within a macOS `.app` bundle?
-- Can existing `.xpm` icons be reliably converted to `.png` or `.svg` without loss of quality, or should new vector/high-resolution icons be considered?
-- How does the `gftp.desktop` file (located in `docs/` and `install/share/applications/`) relate to icon theme discovery, if at all?
-- How are default icons (e.g., for generic files, folders) handled versus specific file type icons (e.g., for `.deb`, `.doc`)?
-- What is the exact mapping logic between file extensions/types and the icon files used?
+- What is the exact build process for the macOS `gFTP.app` bundle, specifically regarding asset inclusion and icon theme paths? (Reference `build_and_bundle_gftp.sh`, `packaging/macos/`, `MACOS.md`, `docs/BUILDING-MACOS.md`).
+- Are all `.xpm` icons in `icons/legacy/` actually used by the application, or are some vestigial? Which ones specifically need conversion?
+- What tool is currently used (or is best suited) for converting `.xpm` to `.png` and `.svg` within the build pipeline? (e.g., `sips`, `ImageMagick`, `rsvg-convert`).
+- Where should the converted `.png`/`.svg` icon files be placed within the `gFTP.app/Contents/Resources/` directory structure to be discoverable by GTK's icon theme engine on macOS? (e.g., `share/icons/hicolor/`).
+- How does gFTP's GTK code (e.g., `src/gtk/`, `lib/`) request and load icons? Does it use `GtkIconTheme`, `gtk_image_new_from_icon_name`, or direct file paths?
+- What are the implications of GTK3's icon theme caching on macOS, and how can we ensure new/converted icons are recognized?
+
+---
 
 ## Notes / Artifacts
 
-- `INTENT_SPEC.md`
-- `HUMAN_IDEA_BRIEF.md`
-- `PROJECT_CONTEXT.md`
-- Initial `ls -RF` output provides a comprehensive file structure overview, including the presence of `*.xpm` and `*.png`/`*.svg` in various `icons/` and `gftp-install/` locations.
+- `HUMAN_IDEA_BRIEF.md`: `docs/current_tasks_documentation/0-test-task/HUMAN_IDEA_BRIEF.md` (provides core problem statement and desired outcomes)
+- `INTENT_SPEC.md`: `docs/current_tasks_documentation/0-test-task/INTENT_SPEC.md` (provides detailed technical translation and initial gap analysis, even if unapproved)
+- Relevant files to investigate:
+    - `build_and_bundle_gftp.sh`
+    - `packaging/macos/` directory contents
+    - `MACOS.md`
+    - `docs/BUILDING-MACOS.md`
+    - `src/gtk/` for icon loading logic
+    - `lib/` for file type detection and icon association
+    - `icons/` directory structure for existing icons
+    - `meson.build` for build system configuration relevant to icons and bundling.
 
 
-Time Created: 2026-02-22 00:00:00  
-Time Modified: 2026-02-22 00:00:00
+Time Created: 2026-02-27 00:00:00
+Time Modified: 2026-02-27 00:00:00

@@ -11,66 +11,143 @@ This document is:
 - Solution-agnostic
 
 It describes **outcomes and constraints**, not implementation.
-If *how* something is built is described, it does not belong here.
+If *how* something is built is built, it does not belong here.
 
 ---
 
 ## Functional Requirements
 
-- **FR-1:** The gFTP application MUST display appropriate graphical icons for all identified file types (e.g., general file, directory, executable, document, archive) in both the local and remote file views when running on macOS.
-- **FR-2:** The gFTP application MUST display appropriate graphical icons for all identified file types in both the local and remote file views when running on Linux.
-- **FR-3:** The icons displayed for files and directories MUST accurately reflect their type and be visually distinct to enhance user comprehension.
+List externally observable behaviors the system MUST exhibit.
+
+Each requirement must:
+- Be specific and unambiguous
+- Be testable by observation or inspection
+- Describe *what*, not *how*
+
+Format:
+- FR-1:
+- FR-2:
+- FR-3:
+
+- **FR-1**: The gFTP application on macOS MUST display appropriate graphical icons for all files and folders in the local file system view.
+- **FR-2**: The gFTP application on macOS MUST display appropriate graphical icons for all files and folders in the remote (FTP/SFTP) file system view.
+- **FR-3**: If `.xpm` icon files are encountered during the build or bundling process, the system MUST automatically convert them to `.png` and `.svg` formats.
+- **FR-4**: The converted `.png` and `.svg` icon files MUST be correctly packaged and placed within the macOS application bundle (`gFTP.app/Contents/Resources/`) to be discoverable by the GTK icon theme system.
+- **FR-5**: The gFTP application MUST successfully load and utilize the correctly bundled `.png` and `.svg` icons for display.
+
+---
 
 ## Non-Functional Requirements
 
-- **NFR-1 (Compatibility):** All icon assets used for displaying file/folder types MUST be in a format natively supported by GTK3 on both macOS and Linux (e.g., `.png`, `.svg`). Any existing `.xpm` assets currently serving as icons MUST be converted to a supported format.
-- **NFR-2 (Maintainability):** The icon assets and their corresponding mapping logic MUST be organized in a clear, consistent, and maintainable manner within the codebase and the build system.
-- **NFR-3 (Performance):** The process of loading and displaying icons MUST NOT introduce any perceptible performance degradation or significant increase in application startup time.
+Constraints on system behavior or qualities.
+
+These describe *how the system behaves*, not *how it is built*.
+
+Common categories include:
+- Performance
+- Reliability
+- Compatibility
+- Security
+- Accessibility
+- Maintainability
+
+Format:
+- NFR-1:
+- NFR-2:
+
+- **NFR-1 (Compatibility)**: The solution for icon display MUST be compatible with both macOS and Linux operating environments for gFTP.
+- **NFR-2 (Compatibility)**: The solution MUST NOT rely on `.xpm` files for icon rendering on macOS.
+- **NFR-3 (Maintainability)**: The icon conversion and bundling process SHOULD be integrated into the existing build system (e.g., `meson.build`, shell scripts) to ensure automated and consistent application of the changes.
+
+---
 
 ## Acceptance Criteria Mapping
 
-- **FR-1:**
-    - Verification method: Manual / Inspection
-    - Success condition: On macOS, launch the gFTP application. Navigate through various local and remote directories containing different file types. Visually confirm that all common file types and directories (e.g., `.txt`, `.pdf`, `.exe`, folders) display distinct, appropriate icons.
-- **FR-2:**
-    - Verification method: Manual / Inspection
-    - Success condition: On a Linux environment, launch the gFTP application. Navigate through various local and remote directories containing different file types. Visually confirm that all common file types and directories display distinct, appropriate icons.
-- **FR-3:**
-    - Verification method: Manual / Inspection
-    - Success condition: Visually confirm that icons for distinct file types (e.g., a folder icon is different from an executable icon, which is different from a generic text file icon) are clearly distinguishable to the user.
-- **NFR-1 (Compatibility):**
-    - Verification method: Inspection (Codebase & Build Output)
-    - Success condition: Review the gFTP source code and generated application bundle to verify that no `.xpm` files are directly referenced or used for icon display in GTK3 code paths. Confirm that the build system correctly packages and installs icon assets exclusively in supported formats.
-- **NFR-2 (Maintainability):**
-    - Verification method: Inspection (Codebase & Build System)
-    - Success condition: Review the directory structure for icon assets, relevant C code, and Meson build files (`meson.build`) to ensure logical organization, clear naming conventions, and ease of future updates.
-- **NFR-3 (Performance):**
-    - Verification method: Manual / Observation
-    - Success condition: Launch the gFTP application and browse file systems on typical target hardware (macOS and Linux). Observe and confirm that there is no noticeable delay or slowdown during application startup or file/directory navigation directly attributable to icon loading.
+Define how each requirement will be verified.
+
+This section links **requirements → verification**, not test implementation.
+
+For each requirement:
+- Requirement ID:
+    - Verification method: Automated / Manual / Inspection
+    - Success condition: What must be true for this to pass
+
+- **FR-1**:
+    - Verification method: Manual / Visual Inspection
+    - Success condition: Running gFTP on macOS, the local file list displays distinct and correct icons for various file and folder types (e.g., text file, image, executable, directory).
+- **FR-2**:
+    - Verification method: Manual / Visual Inspection
+    - Success condition: Running gFTP on macOS, connecting to a remote server, the remote file list displays distinct and correct icons for various file and folder types.
+- **FR-3**:
+    - Verification method: Inspection (of build logs and file system)
+    - Success condition: After a full build/bundle process, no `.xpm` files are directly used for display, and corresponding `.png` and `.svg` versions are generated and present in the build artifacts if `.xpm` sources were available.
+- **FR-4**:
+    - Verification method: Inspection (of application bundle contents)
+    - Success condition: The `gFTP.app/Contents/Resources/` directory (or a standard subdirectory like `share/icons/hicolor/`) contains the necessary `.png` and `.svg` icon files in appropriate sizes.
+- **FR-5**:
+    - Verification method: Manual / Visual Inspection
+    - Success condition: The icons displayed in the gFTP UI on macOS are rendered correctly and without visual artifacts.
+
+---
 
 ## Explicit Non-Requirements
 
-- Not doing: Implementing entirely new file type detection mechanisms that do not currently exist in gFTP.
-- Not doing: Undertaking large-scale refactoring of existing gFTP core logic or UI components beyond what is necessary for icon handling.
-- Not supporting: Displaying animated icons or advanced icon features not currently present.
+List behaviors, changes, or outcomes that are **explicitly out of scope**.
+
+This section exists to prevent:
+- Scope creep
+- Assumed features
+- “While we’re here” additions
+
+Examples:
+- Not doing:
+- Not changing:
+- Not supporting:
+
+- **Not doing**: Broad refactoring of gFTP's UI components beyond what is necessary for icon integration.
+- **Not doing**: Performance tuning of the gFTP application unrelated to icon loading/rendering.
+- **Not doing**: General UI polish or aesthetic changes not directly related to the missing icon issue.
+- **Not supporting**: The use of `.xpm` icons for display within gFTP on macOS.
+
+---
 
 ## Assumptions
 
-- **Assumption:** The GTK3 API provides standard and functional mechanisms (e.g., `GtkIconTheme`, `GdkPixbuf`) for loading and rendering `.png` and `.svg` image formats as icons within tree views and list boxes.
-    - **Impact if false:** Significant, custom image loading and rendering code would need to be developed, increasing complexity and risk.
-- **Assumption:** There exist sufficient source icon assets (either current `.xpm` files or other readily available graphical assets) that can be converted or adapted into suitable `.png` or `.svg` formats for all necessary file types.
-    - **Impact if false:** New icon assets would need to be designed or externally sourced, potentially introducing delays and design dependencies.
-- **Assumption:** The core problem lies primarily with icon format incompatibility or incorrect asset pathing/packaging, and not with fundamental errors in gFTP's UI rendering logic for icons.
-    - **Impact if false:** The investigation and fix would involve more complex UI debugging and potentially extensive changes to GTK-related UI code.
+List assumptions that must hold true for these requirements to be valid.
+
+Each assumption should include:
+- Assumption:
+- Impact if false:
+
+Assumptions are **not guarantees** and may require validation.
+
+- **Assumption**: The GTK icon theme system on macOS can successfully locate and load icons from standard locations within a macOS application bundle (e.g., `Contents/Resources/share/icons/hicolor/`).
+    - **Impact if false**: Additional research and potentially significant changes to the bundling process or GTK configuration would be required.
+- **Assumption**: Existing `meson.build` files and shell scripts provide sufficient hooks or flexibility to integrate new icon conversion and staging steps.
+    - **Impact if false**: The build system may require more extensive modification, increasing complexity and risk.
+- **Assumption**: `sips` or `ImageMagick` are available on the build system or can be easily integrated for `.xpm` to `.png`/`.svg` conversion.
+    - **Impact if false**: An alternative conversion tool would need to be identified and integrated.
+
+---
 
 ## Open Questions
 
-- What specific `Gtk` or `Gdk` functions are currently responsible for loading icon resources based on file type or name? (e.g., `gtk_icon_theme_load_icon`, `gdk_pixbuf_new_from_file`).
-- What are the precise file name patterns or conventions that gFTP uses to associate an icon name with a given file type (e.g., "folder.png", "binary.svg", "document-text.png")?
-- What toolchain or method should be used for converting existing `.xpm` icon files to `.png` and `.svg` format, ensuring quality and consistency?
-- What are the exact installation target paths within the macOS `.app` bundle (and standard Linux installations) that ensure GTK3's icon theme engine (if used) can correctly discover and load the converted icons?
-- Are all the necessary visual metaphors for file types (e.g. folder, text, binary, compressed, image) currently represented by existing `.xpm` files, or will some new icons need to be created?
+Requirement-level questions that remain unresolved.
 
+These must be answered **before or during implementation**.
+If unanswered, they may block execution or acceptance.
 
-Time Created: 2026-02-22 00:00:00  
-Time Modified: 2026-02-22 00:00:00
+For each question:
+- Question:
+- Owner:
+- Needed by:
+
+- **Question**: What is the definitive standard path for GTK icons within a macOS `.app` bundle, or what path does gFTP currently use for other assets that could be leveraged?
+    - **Owner**: Architect/Builder
+    - **Needed by**: Implementation
+- **Question**: Are there any remaining `.xpm` icons in `icons/legacy/` that are still actively referenced by the gFTP codebase and require conversion, beyond those already converted to `.png` and `.svg` in the other `icons/` subdirectories?
+    - **Owner**: Architect/Builder (requires codebase investigation)
+    - **Needed by**: Implementation
+
+Time Created: 2026-02-27 00:00:00
+Time Modified: 2026-02-27 00:00:00

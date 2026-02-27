@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # build_gftp_homebrew.sh - Build gFTP using Homebrew GTK3 and create macOS app bundle
 #
@@ -122,13 +122,6 @@ if [ -z "$APP_BUNDLE_GENERATOR" ]; then
 fi
 info "Found AppBundleGenerator at: $APP_BUNDLE_GENERATOR"
 
-# Check for ImageMagick 'convert'
-if ! command -v convert &> /dev/null; then
-    echo -e "${RED}Error: ImageMagick 'convert' not found. Please install with: brew install imagemagick${NC}"
-    exit 1
-fi
-echo "  ✓ ImageMagick 'convert' found"
-
 echo -e "${GREEN}✓ All required prerequisites found${NC}"
 echo ""
 
@@ -170,18 +163,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Convert XPM files in the build directory to PNG for macOS bundle
-echo -e "${YELLOW}Converting XPM icons to PNG in build directory...${NC}"
-for xpm_file in "$GFTP_SOURCE/build/docs/sample.gftp/"*.xpm; do
-    if [ -f "$xpm_file" ]; then
-        png_file="${xpm_file%.xpm}.png"
-        convert "$xpm_file" "$png_file"
-        echo "  Converted $(basename "$xpm_file") to $(basename "$png_file")"
-    fi
-done
-echo -e "${GREEN}✓ XPM icons converted to PNG in build directory${NC}"
-echo ""
-
 # Build
 echo "  Building..."
 meson compile -C build
@@ -201,18 +182,6 @@ if [ $? -ne 0 ]; then
 fi
 
 echo -e "${GREEN}✓ gFTP built and installed${NC}"
-echo ""
-
-# Modify gftprc to use PNG icons instead of XPM
-echo -e "${YELLOW}Modifying gftprc to use PNG icons...${NC}"
-GFTPRC_PATH="$GFTP_PREFIX/share/gftp/gftprc"
-
-# Replace .xpm with .png in ext= lines
-sed -i '' -e 's/\.xpm:/\.png:/g' "$GFTPRC_PATH"
-# Special case for .png/.jpg which also referred to img.xpm
-sed -i '' -e 's/\.png:img\.xpm:/\.png:img\.png:/g' "$GFTPRC_PATH"
-sed -i '' -e 's/\.jpg:img\.xpm:/\.jpg:img\.png:/g' "$GFTPRC_PATH"
-echo -e "${GREEN}✓ gftprc modified to use PNG icons${NC}"
 echo ""
 
 # Step 4: Creating .icns file from SVG
@@ -282,6 +251,8 @@ BUNDLE_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 export GTK_PATH="$BUNDLE_DIR/Contents/Resources"
 export GDK_PIXBUF_MODULE_FILE="$BUNDLE_DIR/Contents/Resources/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
 export XDG_DATA_DIRS="$BUNDLE_DIR/Contents/Resources/share:$XDG_DATA_DIRS"
+export GFTP_SHARE_DIR="$BUNDLE_DIR/Contents/Resources/share"
+export GFTP_SHARE_DIR="$BUNDLE_DIR/Contents/Resources/share"
 
 # Set GFTP_CONFIG_DIR to point to bundled resources for default config lookups
 # This will be used by lib/misc.c on macOS if GFTP_CONFIG_DIR is set.
@@ -368,16 +339,7 @@ echo -e "${YELLOW}Copying images and icons to bundle...${NC}"
 mkdir -p "$BUNDLE_PATH/Contents/Resources/share/gftp"
 cp "$GFTP_PREFIX/share/gftp/gftp.png" "$BUNDLE_PATH/Contents/Resources/share/gftp/gftp.png"
 
-# Copy XPM files from share/gftp (user requested disabling, but ensuring they exist first)
-for xpm_file in "dotdot.xpm" "doc.xpm" "dir.xpm" "exe.xpm" "gftp-logo.xpm" "img.xpm" "linkdir.xpm" "linkfile.xpm" "man.xpm" "open_dir.xpm" "rpm.xpm" "tar.xpm" "txt.xpm" "sound.xpm" "world.xpm" "deb.xpm"; do
-    if [ -f "$GFTP_PREFIX/share/gftp/$xpm_file" ]; then
-        cp "$GFTP_PREFIX/share/gftp/$xpm_file" "$BUNDLE_PATH/Contents/Resources/share/gftp/$xpm_file"
-    fi
-done
-
-# Copy hicolor icons
-# meson installs these into directories like share/icons/hicolor/16x16/apps
-# We need to copy the entire hicolor directory structure
+# Copy hicolor icons from the main build
 if [ -d "$GFTP_PREFIX/share/icons/hicolor" ]; then
     cp -R "$GFTP_PREFIX/share/icons/hicolor" "$BUNDLE_PATH/Contents/Resources/share/icons/"
 fi

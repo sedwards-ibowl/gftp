@@ -1,114 +1,273 @@
-# TASK_PACKET.md
+# TASK PACKET — Fix Missing Icons in gFTP on macOS
 
-## 1. Objective
+Version: 1.0  
+Last Updated: 2026-02-27  
+Status: Draft
 
-To resolve the issue of missing icons for files, folders, and binaries in the gFTP application on macOS and Linux by migrating from unsupported `.xpm` icon formats to compatible `.png` and `.svg` formats. This includes converting existing assets, updating code references, and ensuring correct integration into the Meson build system and macOS application bundle.
+Supersedes: N/A
 
-## 2. Non-goals
+---
 
-- Creating entirely new icon designs or aesthetic overhauls, unless strictly necessary due to inability to convert an existing `.xpm` icon.
-- Refactoring unrelated parts of the codebase.
-- Changing application functionality beyond icon display.
+This document is the **execution contract** for this task.
 
-## 3. Constraints
+Anything not explicitly authorized here is **out of scope**.
+If ambiguity exists, execution must stop.
 
-- **Platform Compatibility:** Solution must work for both macOS and Linux environments.
-- **GTK3 Compatibility:** All icon assets must be compatible with GTK3.
-- **Build System:** The Meson build system must be correctly configured to handle new icon formats and exclude old ones.
-- **Tooling:** Conversion of `.xpm` to `.png` and `.svg` should leverage existing command-line tools like `sips` (macOS) or `ImageMagick` (`convert`).
-- **macOS App Bundle:** The new icons must be correctly packaged and discoverable within the `gFTP.app` bundle, integrating with existing scripts (e.g., `create_app_bundle.sh`, `build_gftp_app.sh`, `AppBundleGenerator`).
+Subtask handling is governed by:
+AI_SESSION/INSTRUCTIONS/SUBTASKS.md
 
-## 4. Exact file touch list
+---
+## Human Authorization Gate (Required)
 
-**Create:**
-- `icons/<size>/actions/*.png` (e.g., `icons/16x16/actions/dir.png`, `icons/22x22/actions/dir.png`, etc. for all relevant sizes)
-- `icons/scalable/actions/*.svg` (for scalable icons, if conversion is feasible)
+This task MUST NOT proceed to execution unless explicitly authorized by a human.
 
-**Modify:**
-- `src/gtk/menu-items.c`
-- `src/gtk/misc-gtk.c`
-- `src/gtk/transfer.c`
-- `src/gtk/bookmarks.c`
-- `lib/config_file.c`
-- `build_gftp_homebrew.sh`
-- `docs/sample.gftp/gftprc`
-- `meson.build` (root)
-- `icons/meson.build`
-- `po/gftp.pot` (and relevant `.po` files if "XPM file" string is updated)
-- `README.md` (if icon references are present and need updating)
-- `CLAUDE.md` (if icon references are present and need updating)
+### Authorization Status
+- Authorized for Build: [x] Yes ☐ No
+- Authorized By: Stevem Edwards
+- Authorization Date: <YYYY-MM-DD>
 
-**Do NOT touch:**
-- Any files outside the `src/`, `lib/`, `icons/`, `po/`, `docs/`, `build_gftp_homebrew.sh`, `meson.build` context, unless specifically identified as necessary during the implementation phase and approved.
+### Authorized Scope
+(Check all that apply)
+- [x] Implementation
+- [ ] Refactor
+- [ ] Comment normalization
+- [ ] Other (explicitly defined):
 
-## 5. Step-by-step implementation checklist
+### Enforcement Notes
+- Planning completion does NOT imply authorization
+- Presence of DISCOVERY / REQUIREMENTS / RISKS documents does NOT imply authorization
+- COMMENT_STRATEGY.md does NOT authorize work
+- If this section is incomplete or unchecked, the task MUST remain in `Draft`
 
-**Phase 1: Icon Asset Preparation**
-- [x] **1.1 Identify Unique XPMs:** Compile a definitive list of all unique `.xpm` icon files that need conversion, focusing on `icons/legacy/` and `docs/sample.gftp/`.
-- [x] **1.2 Convert to PNG:** For each identified `.xpm` icon, convert it to high-quality `.png` format in various sizes (e.g., 16x16, 22x22, 24x24, 32x32, 48x48).
-    - [x] Utilize `sips` (on macOS) or `ImageMagick` (`convert`) for batch conversion, or any other tool that will  work.
-    - [x] Place converted `.png` files into appropriate size-specific directories (e.g., `icons/16x16/actions/`, `icons/22x22/actions/`, etc.).
-- [x] **1.3 Convert to SVG (if feasible):** For any `.xpm` icons that can be losslessly converted to scalable vector graphics, generate `.svg` versions and place them in `icons/scalable/actions/`. If direct `.xpm` to `.svg` is not viable, consider creating `.svg` from high-resolution `.png`s or sourcing new vector assets.
-- [ ] **1.4 Remove Legacy XPMs:** Delete the original `.xpm` files from `icons/legacy/` and `docs/sample.gftp/`, and ensure they are no longer installed by the build system.
+---
 
-**Phase 2: Codebase Adaptation**
-- [x] **2.1 Update `gftp_get_pixbuf`:** Modify `src/gtk/misc-gtk.c`'s `gftp_get_pixbuf` function (and potentially `open_xpm`) to prioritize loading icons from the GTK icon theme, then fallback to direct file loading of `.png` or `.svg` files from standard icon paths. Remove explicit `.xpm` loading logic.
-- [x] **2.2 Update Hardcoded Icon References:** Review and update `src/gtk/menu-items.c`, `src/gtk/transfer.c`, and `src/gtk/bookmarks.c` to remove direct references to `.xpm` filenames. Instead, they should request icons by name (e.g., "dir", "open_dir", "gftp-logo") allowing GTK's icon theme to resolve the appropriate `.png` or `.svg` asset.
-- [x] **2.3 Update `lib/config_file.c`:** Remove or update any strings referring to "XPM file" in `lib/config_file.c` and associated `po/*.po` translation files if the `.xpm` format is no longer supported for icon definition.
-- [x] **2.4 Update `gftprc` Mappings:** Modify `docs/sample.gftp/gftprc` (and any installed `gftprc` versions) to map file extensions directly to the new `.png` icon names (e.g., `ext=.rpm:rpm.png:B:`). Ensure that build scripts apply these changes.
+# AUTHORIZATION GATE — READY FOR BUILD (HUMAN-OWNED)
 
-**Phase 3: Build System Integration**
-- [x] **3.1 Modify `meson.build` files:**
-    - [x] Update `icons/meson.build` to include the newly created `.png` and `.svg` files in the installation targets for various sizes.
-    - [x] Ensure that `meson.build` files no longer reference or install the `.xpm` files.
-- [x] **3.2 Update Build Scripts:**
-    - [x] Review `build_gftp_homebrew.sh` (and potentially `create_app_bundle.sh`, `build_gftp_app.sh`).
-    - [x] Remove the XPM to PNG conversion logic from `build_gftp_homebrew.sh` as this will now be handled during asset preparation.
-    - [x] **Crucially, remove any steps that copy `.xpm` files into the macOS app bundle (`$BUNDLE_PATH/Contents/Resources/share/gftp/`).**
-    - [x] Ensure the scripts correctly package the new `.png` and `.svg` icons into the `gFTP.app` bundle in the appropriate locations for GTK to discover them.
+> This section is a **hard gate**.  
+> The Architect (Gemini) may draft it, but **may not mark it satisfied**.  
+> The task packet may not be marked `Ready for Build` unless **every box is checked** and the **Human Approval** line is completed.
 
-**Phase 4: Verification and Cleanup**
-- [ ] **4.1 Full Build:** Perform a clean build of gFTP for both macOS and Linux.
-- [x] **4.2 XPM Absence Check:** Verify that no `.xpm` files are present in the installed directories or within the `gFTP.app` bundle on macOS.
-- [ ] **4.3 Visual Verification:** Launch the gFTP GTK interface on both macOS and Linux.
-    - [ ] Navigate through local and remote file systems.
-    - [x] Confirm that all expected file, folder, and binary icons are correctly displayed and are not missing.
-    - [ ] Verify that the gFTP application logo is displayed correctly.
-- [ ] **4.4 Logging/Error Check:** Monitor console output for any warnings or errors related to icon loading.
+## Gate Checklist (Must be all ✅)
 
-## 6. Acceptance tests
+- [ ] **All “Needed by Implementation” items are resolved**
+    - No open questions remain in REQUIREMENTS that would affect implementation choices. (Note: Open questions in RISKS_AND_ASSUMPTIONS.md are carried forward as part of the initial implementation steps for Builder to resolve)
+- [ ] **DISCOVERY.md is complete**
+    - Includes relevant context, constraints, and existing behavior notes.
+- [ ] **REQUIREMENTS.md is complete**
+    - Acceptance criteria are explicit and testable.
+    - Validation rules are explicitly stated (no “implied” validation).
+- [ ] **RISKS_AND_ASSUMPTIONS.md is complete**
+    - Key risks are enumerated.
+    - Assumptions are explicitly tagged as such.
+- [ ] **Definitions & Decisions are locked**
+    - Ambiguous terms/fields have authoritative definitions.
+    - Any “edge cases” that could fork implementation are decided.
+- [ ] **File touch list is explicit**
+    - Exact files allowed to be modified/created are listed.
+    - No “and related files” language.
+- [ ] **Non-goals are explicit**
+    - Clear exclusions to prevent scope creep.
+- [ ] **HUMAN_IDEA_BRIEF provenance is valid**
+    - Brief is human-authored **or** explicitly human-ratified below.
 
-**Build and Run (macOS):**
-1.  `./build_gftp_homebrew.sh` (or equivalent macOS build script)
-2.  `open gFTP.app`
-3.  **Expected Outcome:**
-    - The gFTP application launches successfully.
-    - All file and folder icons in both local and remote panes are visible and correctly rendered (no missing icons).
-    - The application's logo is displayed correctly.
+## Human Approval (Required)
 
-**Build and Run (Linux - Example, adapt to actual setup):**
-1.  `meson setup build`
-2.  `meson compile -C build`
-3.  `meson install -C build` (or `sudo meson install -C build`)
-4.  `/usr/local/bin/gftp-gtk` (or equivalent installed binary path)
-5.  **Expected Outcome:**
-    - The gFTP application launches successfully.
-    - All file and folder icons in both local and remote panes are visible and correctly rendered.
+Human Approval: ☐ Approved for Build   ☐ Not Approved  
+Approved by (name/handle): ____________  
+Date (YYYY-MM-DD): ____________
 
-**File System Check (macOS):**
-1.  `find gFTP.app -name "*.xpm"`
-2.  **Expected Outcome:** Command should return no results (no `.xpm` files within the app bundle).
-3.  `find gFTP.app -name "*.png"`
-4.  **Expected Outcome:** Should list many `.png` files, including those corresponding to the converted `.xpm` icons.
+## Brief Ratification (Only if Architect drafted the brief text)
 
-**Code References Check:**
-1.  `grep -r ".xpm" src/ lib/ --exclude-dir=po` (excluding translation files)
-2.  **Expected Outcome:** Should return minimal or no results, indicating that direct `.xpm` references have been removed from the C code.
+I confirm the HUMAN_IDEA_BRIEF content is correct and authorized for planning:
+☐ Ratified by Human (name/handle): ____________  Date (YYYY-MM-DD): ____________
 
-## 7. Open risks / blockers
+---
 
-- **Icon Conversion Quality:** The primary risk is that the conversion from older `.xpm` files to `.png` or `.svg` might result in poor visual quality (e.g., pixelation, blurriness) on modern high-resolution displays. This could necessitate manual cleanup or redesign of certain icons.
-- **GTK Icon Theme Integration:** Ensuring the new icons are correctly integrated into the GTK icon theme mechanism, and that the application successfully discovers and uses them, might require careful debugging.
-- **Build Script Complexity:** The existing build scripts, particularly for macOS bundling, can be complex. Modifying them to correctly handle new icon paths and formats while removing old `.xpm` dependencies without introducing regressions is a potential blocker.
-- **Comprehensive XPM Reference Removal:** Despite searches, there might be obscure `.xpm` references in the codebase or configuration files that are missed, leading to residual issues.
-- **SVG Generation:** Direct `.xpm` to `.svg` conversion might not yield high-quality results. If scalable vector graphics are truly required, new `.svg` assets might need to be created from scratch or from high-resolution `.png` sources.
+
+
+---
+
+## 1) Objective
+
+Address the deficiency in the gFTP graphical user interface (gftp-gtk) where file, folder, and binary icons are not displayed for both local and remote file listings on macOS, by ensuring proper conversion and integration of icon assets within the macOS application bundle.
+
+---
+
+## 2) Non-Goals
+
+Explicit exclusions.
+
+This section is authoritative.
+If something is not allowed, it must be stated here.
+
+- **Not doing**: Broad refactoring of gFTP's UI components beyond what is necessary for icon integration.
+- **Not doing**: Performance tuning of the gFTP application unrelated to icon loading/rendering.
+- **Not doing**: General UI polish or aesthetic changes not directly related to the missing icon issue.
+- **Not supporting**: The use of `.xpm` icons for display within gFTP on macOS.
+
+---
+
+## 3) Constraints
+
+Hard limits that must not be violated.
+
+These are **non-negotiable** during execution.
+
+- **Must preserve**: Compatibility with Linux operating environments for gFTP.
+- **Must not change**: Core application logic unrelated to icon handling.
+- **Must remain compatible with**: Existing `meson.build` build system and associated shell scripting patterns.
+- **Must not violate**: macOS application bundle structure guidelines (`gFTP.app/Contents/Resources/`).
+
+---
+
+## 4) Definitions & Decisions (Lock Ambiguity)
+
+All potentially ambiguous items must be resolved here.
+
+This section overrides:
+- defaults
+- conventions
+- prior assumptions
+
+Include:
+- Authoritative terms or field names
+- Final decisions on edge cases
+- Display or interpretation semantics
+- Tie-breakers where multiple “reasonable” options exist
+
+If something is ambiguous and not resolved here, execution must stop.
+
+- **Icon Conversion Tool**: `sips` (macOS native) or `ImageMagick` (if available and preferred for robustness). Preference will be given to `sips` for simplicity and native integration if it meets all requirements. If `sips` proves insufficient, `ImageMagick` will be used.
+- **Target Icon Formats**: `.png` and `.svg`. All `.xpm` icons deemed necessary for conversion must result in both `.png` and `.svg` variants where applicable (e.g., scalable for `.svg`).
+- **macOS Application Bundle Icon Path**: Icons should be placed in `gFTP.app/Contents/Resources/share/icons/hicolor/` followed by standard size/format subdirectories (e.g., `16x16/apps/`, `scalable/apps/`). This is the conventional path for GTK applications.
+
+---
+
+## 5) Exact File Touch List (Authoritative)
+
+This section defines the **only files the Builder may interact with**.
+
+### Create (or Modify if already present)
+- `TASK_PACKET_SUMMARY.md`
+    - Must be created in the same directory as this file
+    - Must follow `TASK_PACKET_SUMMARY_TEMPLATE.md`
+- `docs/current_tasks_documentation/0-test-task/DISCOVERY.md`
+- `docs/current_tasks_documentation/0-test-task/REQUIREMENTS.md`
+- `docs/current_tasks_documentation/0-test-task/RISKS_AND_ASSUMPTIONS.md`
+- `docs/current_tasks_documentation/0-test-task/TASK_PACKET.md` (this file)
+- Any newly generated `.png` and `.svg` icon files within the `build/icons` (or similar staging) and `gFTP.app/Contents/Resources/share/icons/hicolor/` directories. These will be created during the build process.
+
+### Modify
+- `build_and_bundle_gftp.sh` (or `create_app_bundle.sh` if it exists and is the primary bundling script) - for integrating icon conversion and staging.
+- `meson.build` files (specifically `icons/meson.build` and potentially `src/meson.build` or top-level `meson.build`) - to define icon conversion as a build step and manage icon installation paths.
+- `src/gtk/*.c`, `src/uicommon/*.c`, `lib/*.c` (potentially) - to adjust icon loading logic if hardcoded paths are found or to ensure `GtkIconTheme` is used correctly.
+- `gftp.icns` (if modifications are needed to the overall application icon bundle)
+- `fix_rpaths.sh` - if changes to the application bundle structure require adjustments to `rpath` handling.
+- `docs/current_tasks_documentation/0-test-task/HUMAN_IDEA_BRIEF.md`
+
+### Do NOT Touch
+- Files outside the scope of icon handling and macOS bundling.
+- Any build system files for other platforms (e.g., Linux `meson.build` targets) unless explicitly conditional for macOS.
+- Localisation `.po` files.
+
+Rules:
+- Touching an unlisted file requires stopping execution
+- Dependency or config files (e.g., pubspec, gradle, podspec) are forbidden unless explicitly listed
+- “Incidental” changes are not permitted
+
+---
+
+## 6) Implementation Checklist (In Order)
+
+Concrete, ordered steps the Builder must follow.
+
+Rules:
+- Steps must be explicit and verifiable
+- No conditional logic
+- No inferred sub-steps
+
+- [ ] **Step 1: Investigate Icon Usage and Build Process**
+    - [ ] Determine the specific `.xpm` icons in `icons/legacy/` that are actively used by gFTP's UI. This may involve code search for references to `legacy/` or specific `.xpm` filenames.
+    - [ ] Analyze `build_and_bundle_gftp.sh` and `packaging/macos/` scripts (e.g., `create_app_bundle.sh` if it exists) to understand the current macOS bundling process, especially how resources are added to `gFTP.app`.
+    - [ ] Examine `meson.build` files (`icons/meson.build`, top-level `meson.build`) to understand how icon assets are currently built and installed.
+    - [ ] Research GTK icon theme lookup paths and environment variables on macOS within an `.app` bundle context to confirm `gFTP.app/Contents/Resources/share/icons/hicolor/` is the correct target.
+- [ ] **Step 2: Implement Icon Conversion and Staging**
+    - [ ] Develop a mechanism (e.g., a new shell script or `meson` custom command) to convert identified `.xpm` icons to `.png` and `.svg` using `sips` or `ImageMagick`.
+    - [ ] Integrate this conversion step into the `meson.build` system so it runs automatically during the macOS build.
+    - [ ] Modify the build process to stage all necessary `.png` and `.svg` icons (both newly converted and existing ones) into a temporary directory structure that mirrors the target `gFTP.app/Contents/Resources/share/icons/hicolor/` layout.
+- [ ] **Step 3: Update Bundling Script**
+    - [ ] Modify `build_and_bundle_gftp.sh` (or `create_app_bundle.sh`) to copy the staged icon files into the final `gFTP.app/Contents/Resources/share/icons/hicolor/` directory within the application bundle.
+    - [ ] Ensure that the `gFTP.app` bundle has correct permissions and structure for the new icon files.
+    - [ ] Check if `fix_rpaths.sh` needs adjustment due to changes in bundle structure.
+- [ ] **Step 4: Adjust gFTP Icon Loading Logic (if necessary)**
+    - [ ] Search gFTP's C/GTK source (`src/gtk/`, `lib/`) for direct references to `.xpm` files or hardcoded icon paths.
+    - [ ] If found, update the code to use abstract icon names (e.g., `gtk_image_new_from_icon_name`) or to correctly reference the new `.png`/`.svg` assets via GTK's icon theme.
+    - [ ] Ensure GTK is initialized with proper icon theme paths for macOS within the application context.
+- [ ] **Step 5: Verification and Testing**
+    - [ ] Perform a full clean build of `gFTP.app` on macOS.
+    - [ ] Manually verify the contents of `gFTP.app/Contents/Resources/share/icons/hicolor/` to ensure all expected `.png` and `.svg` icons are present and correctly organized.
+    - [ ] Launch `gFTP.app` on macOS and visually inspect both local and remote file listings to confirm that all files, folders, and binaries display correct and distinct icons.
+    - [ ] Run the build on Linux to ensure no regressions were introduced.
+
+---
+
+## 7) Acceptance Tests
+
+These define **what success means**.
+
+### Automated (Preferred)
+- Command: `test -d gFTP.app/Contents/Resources/share/icons/hicolor/16x16/apps`
+    - Expected result: Directory exists.
+- Command: `test -f gFTP.app/Contents/Resources/share/icons/hicolor/16x16/apps/dir.png`
+    - Expected result: File exists.
+- Command: `find gFTP.app -name "*.xpm"`
+    - Expected result: No `.xpm` files found within the bundled `gFTP.app` that are actively used by the UI (a visual check of the running app is still needed for this to confirm the "actively used" part).
+
+### Manual / Visual (When Necessary)
+- Scenario: Launch gFTP.app on macOS and navigate local file system.
+    - Expected behavior: Icons for files, folders, and binaries are displayed correctly and consistently across the local file view.
+- Scenario: Connect to a remote FTP/SFTP server with gFTP.app on macOS and navigate remote file system.
+    - Expected behavior: Icons for files, folders, and binaries are displayed correctly and consistently across the remote file view.
+
+### Non-Regression Checks (Required)
+
+At least one check must validate that existing behavior was not broken.
+
+- Check: Build and run gFTP on Linux.
+    - Expected result: gFTP builds successfully, runs, and displays icons correctly on Linux, ensuring macOS-specific changes did not introduce regressions.
+
+---
+
+## 8) Open Risks / Blockers
+
+Known issues that could invalidate or pause execution.
+
+List only items that materially affect correctness or completion.
+
+- **Risk**: GTK's icon theme system on macOS does not recognize or properly load icons from `gFTP.app/Contents/Resources/share/icons/hicolor/`. This would require further investigation into GTK's macOS integration or a custom icon loading solution within gFTP.
+- **Open Question**: Exact build system modifications (`meson.build` and shell scripts) needed to conditionally apply icon conversion and bundling steps only for macOS. This needs to be determined during Step 1 of implementation.
+- **Open Question**: Full list of gFTP C/GTK source files requiring modification to adjust icon loading logic. This needs to be determined during Step 1 and Step 4 of implementation.
+
+If a blocker is encountered, execution must stop.
+
+---
+
+## 9) Builder Notes
+
+Optional clarifications that:
+- Explain intent
+- Reduce misinterpretation
+
+Rules:
+- Must not introduce new requirements
+- Must not expand scope
+- Must not contradict earlier sections
+
+- The Builder should prioritize using existing build system mechanisms (Meson custom commands, `install_data`) rather than entirely new, standalone scripts for icon conversion and staging if possible, to maintain consistency.
+- When searching for `.xpm` references in code, also look for `gdk_pixbuf_new_from_file`, `gtk_image_new_from_file`, or similar functions that might load images directly by path rather than through the theme.
+- Pay close attention to macOS path conventions (case-insensitivity, bundle structure) when configuring icon installation paths.
+
+---
+
+Time Created: 2026-02-27 00:00:00
+Time Modified: 2026-02-27 00:00:00

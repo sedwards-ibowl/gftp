@@ -17,67 +17,138 @@ It does NOT define requirements or implementation plans.
 
 ## Risks
 
-- **Risk:** Converted icon assets from `.xpm` files might suffer from poor visual quality (e.g., blurriness, pixelation) when scaled or displayed on high-resolution screens.
-    - **Impact:** Medium (degraded user experience, potential need for redesign or sourcing of new icon sets).
-    - **Likelihood:** Medium (`.xpm` is an older, often low-resolution format).
-    - **Mitigation or monitoring:** Implement a quality review process for all converted icons. Research and consider open-source GTK-compatible icon sets if conversions are unsatisfactory.
-- **Risk:** The GTK3 icon loading mechanism within a macOS application bundle (`.app` structure) may have specific requirements or conventions that differ significantly from standard Linux GTK3 installations, leading to continued icon display issues.
-    - **Impact:** High (the core problem of missing icons may persist, requiring extensive investigation and rework).
-    - **Likelihood:** Medium (UI toolkit behaviors can vary across OSes, especially with packaging).
-    - **Mitigation or monitoring:** Prioritize detailed investigation into GTK3's icon discovery paths on macOS early in the implementation phase. Leverage macOS-specific debugging tools for path resolution.
-- **Risk:** The codebase's logic for mapping file types (extensions, MIME types) to specific icon names might be fragmented, implicit, or difficult to reliably extract, leading to an incomplete icon display fix.
-    - **Impact:** Medium (some file types may still lack appropriate icons after the fix).
-    - **Likelihood:** Medium (common in older, evolving C codebases).
-    - **Mitigation or monitoring:** A dedicated code audit of relevant UI and utility files (`src/gtk/listbox.c`, `src/uicommon/gftpui.c`, `lib/config_file.c`, etc.) to exhaustively identify icon mapping logic.
-- **Risk:** Modifying the Meson build system to correctly package and install icon assets within the macOS `.app` bundle, while also ensuring correct installation on Linux, proves to be complex or error-prone.
-    - **Impact:** Medium (delays in build process, potential for broken builds or incomplete installations).
-    - **Likelihood:** Medium (Meson configuration for platform-specific packaging can be nuanced).
-    - **Mitigation or monitoring:** Consult Meson documentation specifically for macOS bundling and cross-platform asset management. Create isolated build tests for icon packaging.
+List concrete, credible risks.
+
+A risk is:
+- A future event or condition
+- That may occur
+- And would negatively affect the task if it does
+
+For each risk, include:
+- Description: What could go wrong
+- Impact: Low / Medium / High
+- Likelihood: Low / Medium / High
+- Mitigation or monitoring plan: How the risk will be reduced, detected, or revisited
+
+- **Risk**: GTK's icon theme system on macOS does not recognize or properly load icons from the chosen bundle location, even if assets are correctly placed.
+    - **Impact**: High
+    - **Likelihood**: Medium
+    - **Mitigation or monitoring**: Extensive testing during implementation. If initial attempts fail, research GTK's icon lookup paths on macOS more deeply and experiment with alternative bundling structures or GTK environment variables. Potentially, a custom icon loading path might be required in gFTP's source.
+- **Risk**: The chosen `.xpm` to `.png`/`.svg` conversion tool (e.g., `sips`, `ImageMagick`) introduces visual artifacts or quality degradation in the converted icons.
+    - **Impact**: Medium
+    - **Likelihood**: Low
+    - **Mitigation or monitoring**: Visual inspection of converted icons for all sizes. If issues arise, explore alternative conversion tools or parameters.
+- **Risk**: Modifications to build scripts (`build_and_bundle_gftp.sh`, `meson.build`) for icon handling break existing build processes for other platforms (e.g., Linux).
+    - **Impact**: High
+    - **Likelihood**: Medium
+    - **Mitigation or monitoring**: Rigorous testing of the build process on both macOS and Linux. Use conditional logic in scripts/Meson files to apply macOS-specific icon handling only when building for macOS.
+- **Risk**: The gFTP codebase contains hardcoded references to `.xpm` files or specific icon paths that are difficult to find and update, leading to incomplete icon display.
+    - **Impact**: Medium
+    - **Likelihood**: Medium
+    - **Mitigation or monitoring**: Thorough code search (grep for `.xpm`, `gdk_pixbuf_new_from_file`, etc.) during discovery/implementation. Use of GTK's abstract icon naming (e.g., `gtk_image_new_from_icon_name`) where possible instead of direct file paths.
+- **Risk**: The existing icon assets in `icons/` (e.g., `16x16/apps/`) are incomplete or do not cover all necessary file/folder types, even with successful conversion.
+    - **Impact**: Low
+    - **Likelihood**: Medium
+    - **Mitigation or monitoring**: Visual inspection during testing will highlight missing icons. If identified, new icons may need to be sourced or created. This could expand scope.
 
 ---
 
 ## Assumptions
 
-- **Assumption:** The core GTK3 framework, as used by gFTP, can successfully load and render `.png` and `.svg` icon formats.
-    - **Rationale:** `.png` and `.svg` are widely supported modern image formats in GTK3 across platforms.
-    - **Impact if incorrect:** The fundamental approach to icon display would need re-evaluation, possibly requiring different image libraries or rendering techniques.
-- **Assumption:** The existing gFTP codebase contains logic to determine a file's type (e.g., based on extension or MIME type) and request a corresponding icon name, even if the current implementation fails to display the icon.
-    - **Rationale:** The problem is described as "missing icons," implying that the application *tries* to show icons, just fails to render them.
-    - **Impact if incorrect:** A new subsystem for file type detection and icon mapping would need to be implemented, significantly increasing scope.
-- **Assumption:** It is feasible to convert existing `.xpm` assets into high-quality `.png` or `.svg` alternatives, or suitable replacement icons can be easily sourced or created.
-    - **Rationale:** Standard image conversion tools are available, and generic icon sets often exist.
-    - **Impact if incorrect:** May require significant graphic design effort or compromise on visual quality.
-- **Assumption:** The `meson.build` files provide sufficient flexibility to define platform-specific installation paths and bundling rules for icon assets without major structural changes to the build system.
-    - **Rationale:** Meson is a modern build system designed for flexibility and cross-platform development.
-    - **Impact if incorrect:** Custom scripting or build system extensions might be necessary, adding complexity.
+List assumptions that must hold true for this task to succeed.
+
+If an assumption is false:
+- Requirements may be invalid
+- Scope may change
+- Rework may be required
+
+For each assumption, include:
+- Assumption:
+- Rationale: Why this is believed to be true
+- Impact if incorrect:
+
+Assumptions here must align with (but do not replace)
+assumptions listed in REQUIREMENTS.
+
+- **Assumption**: GTK's icon theme system on macOS is capable of locating and loading icons from standard bundle locations (e.g., `gFTP.app/Contents/Resources/share/icons/hicolor/`).
+    - **Rationale**: This is a standard pattern for bundling resources in macOS applications that use cross-platform toolkits like GTK.
+    - **Impact if incorrect**: Significant additional research and potentially a custom icon loading mechanism within gFTP would be required, or a non-standard bundling approach.
+- **Assumption**: The `meson.build` system and existing shell scripts (`build_and_bundle_gftp.sh`, `packaging/macos/create_app_bundle.sh` or similar) provide sufficient extensibility to integrate icon conversion and staging steps without a complete rewrite of the build process.
+    - **Rationale**: Modern build systems are generally designed for flexibility and extensibility.
+    - **Impact if incorrect**: The effort to modify the build process could be substantially higher, impacting the timeline and complexity.
+- **Assumption**: `sips` (native macOS command-line tool) and/or `ImageMagick` (commonly available via Homebrew) are suitable and accessible tools for `.xpm` to `.png`/`.svg` conversion in the macOS build environment.
+    - **Rationale**: These tools are mentioned in the `HUMAN_IDEA_BRIEF.md` as previously used and are standard for image manipulation.
+    - **Impact if incorrect**: An alternative image conversion utility would need to be identified and integrated into the build pipeline.
+- **Assumption**: The existing gFTP codebase predominantly uses abstract icon names or a consistent pattern for icon lookup that can be mapped to a standard GTK icon theme.
+    - **Rationale**: This is typical for well-structured GTK applications to allow for theme changes.
+    - **Impact if incorrect**: If icon paths are widely hardcoded, identifying and updating all references could be a large, manual effort.
 
 ---
 
 ## Open Questions
 
-- What are the specific GTK3 API calls (functions, properties) used by gFTP that handle icon loading and rendering in `src/gtk/listbox.c` and `src/uicommon/gftpui.c`? (e.g. `gtk_icon_theme_lookup_icon`, `gdk_pixbuf_new_from_file`).
-- What is the most appropriate and officially recommended location within a macOS `.app` bundle for GTK3 application icons, and how should `meson.build` target this path?
-- Which tool(s) (e.g., ImageMagick, Inkscape) are recommended for converting `.xpm` files to `.png` and `.svg` while preserving or improving quality? Are there any automated scripts for this?
-- Are there any existing icon theme specifications (e.g., Freedesktop Icon Theme Specification) that gFTP currently adheres to or should aim to adhere to for its icon naming conventions?
+Questions that, if answered, would:
+- Reduce risk, or
+- Validate or invalidate assumptions
+
+For each question:
+- Question:
+- Owner:
+- Blocking? Yes / No
+- Needed by:
+
+- **Question**: What is the most robust and idiomatic path for GTK icons within a macOS `.app` bundle that ensures discoverability by the GTK icon theme engine?
+    - **Owner**: Architect
+    - **Blocking?**: Yes (for final bundling strategy)
+    - **Needed by**: Prior to `TASK_PACKET.md` creation
+- **Question**: Are there any specific GTK environment variables or configuration files that need to be set within the macOS app bundle to correctly point GTK to the icon theme directories?
+    - **Owner**: Architect
+    - **Blocking?**: Yes (for correct runtime behavior)
+    - **Needed by**: Prior to `TASK_PACKET.md` creation
+- **Question**: What is the minimal set of `.xpm` icons that *must* be converted because they are actively used and not yet covered by existing `.png`/`.svg` assets? This requires a code search.
+    - **Owner**: Architect/Builder
+    - **Blocking?**: No (can be determined during implementation, but better to know upfront for completeness)
+    - **Needed by**: Early implementation phase
 
 ---
 
 ## Change Triggers
 
-- **Trigger:** Initial code investigation reveals a highly customized or non-standard icon loading mechanism in gFTP, deviating significantly from common GTK3 patterns.
-    - **Expected response:** Pause, re-evaluate existing assumptions about GTK3 standard behavior, potentially re-scope to include reverse-engineering custom icon logic.
-- **Trigger:** Attempts to convert `.xpm` icons result in unacceptable visual quality (e.g., jagged edges, poor scaling), and no readily available superior alternatives exist.
-    - **Expected response:** Pause, escalate to design/product for decision on sourcing new icon assets or re-evaluating visual quality expectations.
-- **Trigger:** Inability to configure Meson to correctly place icons for both macOS and Linux without resorting to brittle platform-specific hacks.
-    - **Expected response:** Pause, explore alternative build system approaches for asset management, or consider more complex runtime loading solutions.
+Events or conditions that should force re-evaluation of this task.
+
+Triggers exist to prevent:
+- Continuing work under invalid assumptions
+- Ignoring external changes
+- Retrofitting explanations after failure
+
+For each trigger:
+- Trigger:
+- Expected response: Pause, re-scope, create subtask, create bugtask, or abandon
+
+- **Trigger**: Discovery that GTK on macOS fundamentally cannot load icons from within the `.app` bundle via standard icon theme mechanisms (e.g., requiring icons to be installed system-wide).
+    - **Expected response**: Pause, re-scope (potentially requiring a different approach for macOS icons, or abandoning the GTK icon theme approach for macOS).
+- **Trigger**: Significant, unexpected changes to the gFTP build system or macOS packaging scripts occur before or during implementation.
+    - **Expected response**: Pause, re-scope, re-evaluate assumptions about build system extensibility.
+- **Trigger**: Identification of a large number of hardcoded `.xpm` references in the codebase, indicating a more extensive refactoring is needed beyond simple path updates or theme integration.
+    - **Expected response**: Pause, re-scope (potentially creating a subtask for code refactoring).
 
 ---
 
 ## Subtask Gate (MANDATORY — FINAL)
 
+This section determines whether the task can safely proceed as a single
+bounded TASK_PACKET, or whether decomposition is required.
+
 ### Evaluation
 - subtasks_likely: NO
-- rationale: The task is focused on resolving a single, coherent problem (missing icons) through a combination of asset conversion, build system configuration, and targeted code adjustments. While there are open questions and potential risks, they appear manageable within the scope of a single development task without requiring independent, separately shippable sub-components. The problem domain is well-defined, and the expected solution path is relatively linear: investigate, convert, configure, verify.
+- rationale: The task, while involving multiple components (icon conversion, bundling, code check), appears to be tightly coupled around the single objective of fixing icon display. The open questions can likely be resolved during the initial phase of implementation or through focused research, rather than requiring separate, independent subtasks. The scope is well-defined and constrained to icon handling.
 
-Time Created: 2026-02-22 00:00:00  
-Time Modified: 2026-02-22 00:00:00
+### Human Alert Requirement
+If `subtasks_likely = YES`:
+- Gemini MUST alert the human
+- Gemini MUST explain the rationale
+- Gemini MUST STOP after writing this document
+
+
+Time Created: 2026-02-27 00:00:00
+Time Modified: 2026-02-27 00:00:00
