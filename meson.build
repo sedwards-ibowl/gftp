@@ -36,7 +36,7 @@ ssl = dependency('openssl', required: get_option('ssl'))
 
 # Check for gtk-mac-integration on macOS
 if host_machine.system() == 'darwin'
-    gtkmacintegration = dependency('gtk-mac-integration-gtk3', required: false)
+    gtkmacintegration = dependency('gtk-mac-integration-gtk3', required: true)
     if gtkmacintegration.found()
         add_project_arguments('-DMAC_INTEGRATION', language: 'c')
     endif
@@ -81,6 +81,7 @@ subdir('src')
 subdir('src/uicommon')
 subdir('docs')
 subdir('icons')
+#subdir('third_party/glib-2.0-schemas
 
 if get_option('textport')
     subdir('src/text')

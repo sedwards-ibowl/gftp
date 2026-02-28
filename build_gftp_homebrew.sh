@@ -362,8 +362,8 @@ echo ""
 
 # Step 6: Verify the bundle
 echo -e "${YELLOW}Step 6: Verifying app bundle...${NC}"
-find "BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "python3.1*"  -exec rm -rf {} +
-find "BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libpython*.dylib" -exec rm -rf {} +
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "python3.1*"  -exec rm -rf {} +
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libpython*.dylib" -exec rm -rf {} +
 echo ""
 
 
