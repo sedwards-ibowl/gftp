@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 # build_gftp_homebrew.sh - Build gFTP using Homebrew GTK3 and create macOS app bundle
 #
@@ -359,6 +359,13 @@ find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libnode*.dylib" -exe
 rm -rf "$BUNDLE_PATH/Contents/Resources/etc/bash_completion.d/npm"
 echo -e "${GREEN}✓ Unwanted dependencies cleaned${NC}"
 echo ""
+
+# Step 6: Verify the bundle
+echo -e "${YELLOW}Step 6: Verifying app bundle...${NC}"
+find "BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "python3.1*"  -exec rm -rf {} +
+find "BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libpython*.dylib" -exec rm -rf {} +
+echo ""
+
 
 # Step 6: Verify the bundle
 echo -e "${YELLOW}Step 6: Verifying app bundle...${NC}"
