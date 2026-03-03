@@ -181,8 +181,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo -e "${GREEN}✓ gFTP built and installed${NC}"
+echo -e "${GREEN}✓ gFTP structue built and installed${NC}"
 echo ""
+
+# Explicity app glib-2.0 scemes for AooBundler
+echo -e "${GREEM}Please ignore the following glib-2.0 templates to bundle error, it is resolved later in the build...${NC}"
 
 # Step 4: Creating .icns file from SVG
 echo -e "${YELLOW}Step 4: Creating .icns file from SVG...${NC}"
@@ -332,6 +335,11 @@ cp "$GFTP_PREFIX/share/gftp/bookmarks" "$BUNDLE_PATH/Contents/Resources/share/gf
 echo -e "${GREEN}✓ Default config files copied to bundle${NC}"
 echo ""
 
+# Explicity app glib-2.0 scemes for AooBundker to cimouke
+echo -e "${YELLOW}Copying glib-2.0 templates to bundle...${NC}"
+mkdir -p "$BUNDLE_PATH/Contents/Resources/share/glib-2.0/"
+cp -R "$GFTP_SOURCE/third_party/glib-2.0-schemas" "$BUNDLE_PATH/Contents/Resources/share/glib-2.0/schemas"
+
 # Explicitly copy images and icons into the bundle
 echo -e "${YELLOW}Copying images and icons to bundle...${NC}"
 
@@ -360,7 +368,6 @@ rm -rf "$BUNDLE_PATH/Contents/Resources/etc/bash_completion.d/npm"
 echo -e "${GREEN}✓ Unwanted dependencies cleaned${NC}"
 echo ""
 
-# Step 6: Verify the bundle
 echo -e "${YELLOW}Step 6: Verifying app bundle...${NC}"
 find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "python3.1*"  -exec rm -rf {} +
 find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libpython*.dylib" -exec rm -rf {} +
