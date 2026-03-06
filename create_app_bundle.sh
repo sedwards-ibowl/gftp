@@ -87,6 +87,9 @@ chmod +x "$WRAPPER_SCRIPT"
 # Get version from gftp-gtk
 VERSION=$(strings "$GFTP_GTK" | grep -E '^2\.[0-9]+\.[0-9]+' | head -1 || echo "2.9.1b")
 
+info "Clearing extended attributes from bundle contents..."
+xattr -cr "$INSTALL_PREFIX"
+
 # Use AppBundleGenerator to create the bundle
 "$APP_BUNDLE_GENERATOR" \
   --icon "$SCRIPT_DIR/icons/scalable/gftp.svg" \

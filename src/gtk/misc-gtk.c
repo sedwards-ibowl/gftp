@@ -821,7 +821,6 @@ char * get_image_path (char *filename)
 
    if (!found) {
       // If not found, report error. Removed hardcoded /usr/share/gftp fallback.
-      if (path1) fprintf(stderr, "* %s: %s not found\n", PACKAGE_NAME, path1);
    }
 
    if (path1 && path1 != found) g_free (path1);
@@ -837,7 +836,7 @@ void set_window_icon(GtkWindow *window, char *icon_name)
   if (icon_name)
     img_path = get_image_path (icon_name);
   else
-    img_path = get_image_path ("gftp.png");
+    img_path = get_image_path ("gftp/gftp.png");
   if (img_path) {
     pixbuf = gdk_pixbuf_new_from_file(img_path, NULL);
     g_free (img_path);

@@ -28,6 +28,35 @@
 #ifdef HAVE_COREFOUNDATION
 #include <CoreFoundation/CoreFoundation.h>
 #include <limits.h>
+
+static char *gftp_get_bundle_resource_path(const char *resource_name)
+{
+    CFBundleRef bundle = CFBundleGetMainBundle();
+    if (!bundle) {
+        return NULL;
+    }
+
+    CFURLRef resourceURL = CFBundleCopyResourcesDirectoryURL(bundle);
+    if (!resourceURL) {
+        return NULL;
+    }
+
+    char path[PATH_MAX];
+    if (!CFURLGetFileSystemRepresentation(resourceURL, TRUE, (UInt8 *)path, PATH_MAX)) {
+        CFRelease(resourceURL);
+        return NULL;
+    }
+
+    CFRelease(resourceURL);
+
+    char *resource_path = g_build_filename(path, resource_name, NULL);
+    if (!g_file_test(resource_path, G_FILE_TEST_EXISTS)) {
+        g_free(resource_path);
+        return NULL;
+    }
+
+    return resource_path;
+}
 #endif
 
 char * BASE_CONF_DIR = NULL;
@@ -976,24 +1005,8 @@ void gftp_locale_init (void)
   setlocale (LC_ALL, "");
   textdomain ("gftp");
 
-#if defined(__APPLE__)
-  /* On macOS, check if running from an app bundle and use bundle's Resources directory */
-  CFBundleRef bundle = CFBundleGetMainBundle();
-  if (bundle) {
-    CFURLRef resourceURL = CFBundleCopyResourcesDirectoryURL(bundle);
-    if (resourceURL) {
-      char path[PATH_MAX];
-      if (CFURLGetFileSystemRepresentation(resourceURL, TRUE, (UInt8 *)path, PATH_MAX)) {
-        locale_dir = g_build_filename(path, "locale", NULL);
-        /* Verify the locale directory exists before using it */
-        if (!g_file_test(locale_dir, G_FILE_TEST_IS_DIR)) {
-          g_free(locale_dir);
-          locale_dir = NULL;
-        }
-      }
-      CFRelease(resourceURL);
-    }
-  }
+#if defined(__APPLE__) && defined(HAVE_COREFOUNDATION)
+  locale_dir = gftp_get_bundle_resource_path("locale");
 #endif /* defined(__APPLE__) */
 
   /* Fall back to compile-time location if not in bundle or bundle path doesn't exist */
@@ -1010,7 +1023,8 @@ void gftp_locale_init (void)
   if (config_env != NULL && *config_env != '\0') {
       BASE_CONF_DIR = g_strdup(config_env);
   } else {
-      BASE_CONF_DIR = g_build_filename (g_get_home_dir(), "Library", "gFTP", NULL);
+      // On macOS, configuration files are in ~/Library/Application Support/gftp
+      BASE_CONF_DIR = g_build_filename(g_get_home_dir(), "Library", "Application Support", "gftp", NULL);
   }
 #else
   // XDG SPEC (XDG_CONFIG_HOME defaults to $HOME/.config/ + gftp)
@@ -1142,12 +1156,16 @@ char * gftp_get_share_dir (void)
   // If env var not set, then proceed with existing logic (initialize only once)
   if (gftp_share_dir == NULL)
   {
-#if defined(__APPLE__)
-      gftp_share_dir = g_build_filename (g_get_home_dir(), "Library", "gFTP", NULL);
-      free_share_dir = 1;
-#else
-      gftp_share_dir = SHARE_DIR;
+#if defined(__APPLE__) && defined(HAVE_COREFOUNDATION)
+    gftp_share_dir = gftp_get_bundle_resource_path("share");
+    if (gftp_share_dir != NULL) {
+        free_share_dir = 1;
+    }
 #endif
+    if (gftp_share_dir == NULL) {
+        gftp_share_dir = SHARE_DIR;
+        free_share_dir = 0;
+    }
   }
   return (gftp_share_dir);
 }
@@ -1167,12 +1185,16 @@ char * gftp_get_doc_dir (void)
 
   if (gftp_doc_dir == NULL)
   {
-#if defined(__APPLE__)
-      gftp_doc_dir = g_build_filename (g_get_home_dir(), "Library", "gFTP", "doc", NULL);
-      free_doc_dir = 1;
-#else
-      gftp_doc_dir = DOC_DIR;
+#if defined(__APPLE__) && defined(HAVE_COREFOUNDATION)
+    gftp_doc_dir = gftp_get_bundle_resource_path("doc");
+    if (gftp_doc_dir != NULL) {
+        free_doc_dir = 1;
+    }
 #endif
+    if (gftp_doc_dir == NULL) {
+      gftp_doc_dir = DOC_DIR;
+      free_doc_dir = 0;
+    }
   }
   return (gftp_doc_dir);
 }

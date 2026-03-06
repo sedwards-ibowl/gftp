@@ -1512,6 +1512,14 @@ main (int argc, char **argv)
   main_thread_id = pthread_self ();
   gtk_init (&argc, &argv);
 
+  GtkIconTheme *icon_theme;
+  char *icon_path;
+
+  icon_theme = gtk_icon_theme_get_default ();
+  icon_path = g_strconcat (gftp_get_share_dir (), "/icons", NULL);
+  gtk_icon_theme_prepend_search_path (icon_theme, icon_path);
+  g_free (icon_path);
+
   graphic_hash_table = g_hash_table_new (string_hash_function,
                                          string_hash_compare);
 
