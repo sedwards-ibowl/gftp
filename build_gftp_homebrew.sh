@@ -372,6 +372,7 @@ echo ""
 echo -e "${YELLOW}Step 6: Verifying app bundle...${NC}"
 find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "python3.1*"  -exec rm -rf {} +
 find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libpython*.dylib" -exec rm -rf {} +
+gtk-update-icon-cache -f -t gFTP.app/Contents/Resources/share/icons/hicolor
 echo ""
 
 

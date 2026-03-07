@@ -375,20 +375,20 @@ static void listbox_add_file (gftp_window_data * wdata, gftp_file * fle)
    gtk_list_store_append (store, &iter);
 
    if (strcmp (fle->file, "..") == 0) {
-      col_data.icon = "dotdot.png";
+      col_data.icon = "dotdot";
       empty_size = 1;
    } else if (S_ISLNK (fle->st_mode) && S_ISDIR (fle->st_mode)) {
-      col_data.icon = "linkdir.png";
+      col_data.icon = "linkdir";
       empty_size = 1;
    } else if (S_ISLNK (fle->st_mode)) {
-      col_data.icon = "linkfile.png";
+      col_data.icon = "linkfile";
    } else if (S_ISDIR (fle->st_mode)) {
-      col_data.icon = "dir.png";
+      col_data.icon = "dir";
       empty_size = 1;
    } else if ((fle->st_mode & S_IXUSR) ||
            (fle->st_mode & S_IXGRP) ||
            (fle->st_mode & S_IXOTH)) {
-      col_data.icon = "exe.png";
+      col_data.icon = "exe";
    } else {
       stlen = strlen (fle->file);
       gftp_lookup_global_option ("ext", &tmplistvar);
@@ -408,7 +408,7 @@ static void listbox_add_file (gftp_window_data * wdata, gftp_file * fle)
    }
 
    if (!col_data.icon) {
-      col_data.icon = "doc.png";
+      col_data.icon = "doc";
    }
 
    if (fle->file) {
