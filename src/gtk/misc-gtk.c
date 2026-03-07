@@ -161,6 +161,11 @@ void ftp_log (gftp_logging_level level, gftp_request * request,
     g_free (logstr);
 }
 
+void register_icons_on_macOS (void)
+{
+   GtkIconTheme *theme = gtk_icon_theme_get_default();
+   gtk_icon_theme_append_search_path(theme, "/MyApp.app/Contents/Resources/icons");
+}
 
 void update_window_info (void)
 {

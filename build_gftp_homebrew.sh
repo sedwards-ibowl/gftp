@@ -299,6 +299,7 @@ chmod +x "$WRAPPER_SCRIPT"
 echo "  Running AppBundleGenerator..."
 
 "$APP_BUNDLE_GENERATOR" \
+    --gtk \
     --icon "$ICNS_FILE" \
     --sign - \
     --hardened-runtime \
