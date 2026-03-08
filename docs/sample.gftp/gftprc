@@ -81,7 +81,7 @@ maxkbs=0.00
 trans_blksize=20480
 
 # This specifies the default protocol to use
-default_protocol=FTP
+default_protocol=SCP
 
 # IP version to use. (ipv4/ipv6, or leave empty to use whatever is available)
 ip_version=

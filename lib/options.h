@@ -275,6 +275,10 @@ supported_gftp_protocols gftp_protocols[] =
   { "HTTP",  http_init,  http_register_module,  "http",   80, 0, 1 }, /* hidden */
   { "HTTPS", https_init, https_register_module, "https", 443, 0, 1 }, /* hidden */
 
+#ifdef __APPLE__
+  { "SMB/CIFS", smb_init, smb_register_module, "smb", 445, 1, 1 },
+#endif
+
   { NULL, NULL, NULL, NULL, 0, 0, 0 }
 };
 

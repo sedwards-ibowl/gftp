@@ -917,6 +917,13 @@ ssize_t gftp_writefmt (gftp_request * request, int fd, const char *fmt, ...);
 int gftp_fd_get_sockblocking (gftp_request * request, int fd);
 int gftp_fd_set_sockblocking (gftp_request * request, int fd, int non_blocking);
 
+/* protocol_smb_cifs.m */
+#ifdef __APPLE__
+int gftp_macos_smb_connect(const char *server_url, const char *username, const char *password, char **out_mount_path);
+int smb_init (gftp_request * request);
+void smb_register_module (void);
+#endif
+
 struct servent * r_getservbyname (const char *name,
                                   const char *proto,
                                   struct servent *result_buf,

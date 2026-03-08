@@ -1023,8 +1023,8 @@ void gftp_locale_init (void)
   if (config_env != NULL && *config_env != '\0') {
       BASE_CONF_DIR = g_strdup(config_env);
   } else {
-      // On macOS, configuration files are in ~/Library/Application Support/gftp
-      BASE_CONF_DIR = g_build_filename(g_get_home_dir(), "Library", "Application Support", "gftp", NULL);
+      // On macOS, standard location is ~/Library/gFTP
+      BASE_CONF_DIR = g_build_filename(g_get_home_dir(), "Library", "gFTP", NULL);
   }
 #else
   // XDG SPEC (XDG_CONFIG_HOME defaults to $HOME/.config/ + gftp)

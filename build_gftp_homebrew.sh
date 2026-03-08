@@ -64,15 +64,11 @@ warn() {
 
 if [ "$1" == "clean" ]; then
     info "Cleaning up..."
-    if [ -d "build" ]; then
-        rm -rf build
-    fi
-    if [ -d "gFTP.app" ]; then
-        rm -rf gFTP.app
-    fi
-    if [ -d "gftp-install" ]; then
-        rm -rf gftp-install
-    fi
+    rm -rf build
+    rm -rf gFTP.app
+    rm -rf gftp-install
+    rm -f gftp.icns
+    rm -f /tmp/gftp-launcher.sh
     info "Cleanup complete."
     exit 0
 fi
@@ -184,8 +180,8 @@ fi
 echo -e "${GREEN}✓ gFTP structue built and installed${NC}"
 echo ""
 
-# Explicity app glib-2.0 scemes for AooBundler
-echo -e "${GREEM}Please ignore the following glib-2.0 templates to bundle error, it is resolved later in the build...${NC}"
+# Explicity add glib-2.0 schemas for AppBundleGenerator
+echo -e "${GREEN}Please ignore the following glib-2.0 templates to bundle error, it is resolved later in the build...${NC}"
 
 # Step 4: Creating .icns file from SVG
 echo -e "${YELLOW}Step 4: Creating .icns file from SVG...${NC}"
@@ -255,7 +251,6 @@ export GTK_PATH="$BUNDLE_DIR/Contents/Resources"
 export GDK_PIXBUF_MODULE_FILE="$BUNDLE_DIR/Contents/Resources/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
 export XDG_DATA_DIRS="$BUNDLE_DIR/Contents/Resources/share:$XDG_DATA_DIRS"
 export GFTP_SHARE_DIR="$BUNDLE_DIR/Contents/Resources/share"
-export GFTP_SHARE_DIR="$BUNDLE_DIR/Contents/Resources/share"
 
 # Set GFTP_CONFIG_DIR to point to bundled resources for default config lookups
 # This will be used by lib/misc.c on macOS if GFTP_CONFIG_DIR is set.
@@ -321,6 +316,15 @@ BUNDLE_PATH="$DEST_DIR/$APP_NAME.app"
 echo -e "${GREEN}✓ App bundle created${NC}"
 echo ""
 
+# Enable HiDPI support in Info.plist
+# This is required for macOS to present high-resolution surfaces to GDK.
+if [ -f "$BUNDLE_PATH/Contents/Info.plist" ]; then
+    echo -e "${YELLOW}Enabling HiDPI support in Info.plist...${NC}"
+    plutil -replace NSHighResolutionCapable -bool YES "$BUNDLE_PATH/Contents/Info.plist"
+    echo -e "${GREEN}✓ HiDPI enabled${NC}"
+fi
+echo ""
+
 # Explicitly copy gftp-gtk into the bundle's Resources/bin
 echo -e "${YELLOW}Copying gftp-gtk to bundle...${NC}"
 mkdir -p "$BUNDLE_PATH/Contents/Resources/bin"
@@ -336,7 +340,7 @@ cp "$GFTP_PREFIX/share/gftp/bookmarks" "$BUNDLE_PATH/Contents/Resources/share/gf
 echo -e "${GREEN}✓ Default config files copied to bundle${NC}"
 echo ""
 
-# Explicity app glib-2.0 scemes for AooBundker to cimouke
+# Explicity add glib-2.0 schemas for AppBundleGenerator
 echo -e "${YELLOW}Copying glib-2.0 templates to bundle...${NC}"
 mkdir -p "$BUNDLE_PATH/Contents/Resources/share/glib-2.0/"
 cp -R "$GFTP_SOURCE/third_party/glib-2.0-schemas" "$BUNDLE_PATH/Contents/Resources/share/glib-2.0/schemas"

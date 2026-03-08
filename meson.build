@@ -56,7 +56,7 @@ endif
 
 # On macOS, add CoreFoundation for app bundle support
 if host_machine.system() == 'darwin'
-    corefoundation = dependency('appleframeworks', modules: ['CoreFoundation'], required: false)
+    corefoundation = dependency('appleframeworks', modules: ['CoreFoundation', 'Foundation', 'NetFS'], required: false)
     if corefoundation.found()
         libdeps += corefoundation
         add_project_arguments('-DHAVE_COREFOUNDATION', language:'c')

@@ -22,6 +22,10 @@ datadir = get_option('prefix') / get_option('datadir')
 docdir = datadir / 'doc'
 
 libgftp_sources = sources
+if host_machine.system() == 'darwin'
+    libgftp_sources += ['auth_smb_cifs.m', 'protocol_smb_cifs.m']
+endif
+
 libgftp_c_args = [
     f'-DSHARE_DIR="@datadir@/gftp"',
     f'-DLOCALE_DIR="@datadir@/locale"',

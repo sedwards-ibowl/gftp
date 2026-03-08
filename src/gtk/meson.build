@@ -11,6 +11,7 @@ sources = [
 	'misc-gtk.c',
 	'options_dialog.c',
 	'platform_specific.c',
+	'smb_connect_dialog.c',
 	'transfer.c',
 	'view_dialog.c'
 ]
