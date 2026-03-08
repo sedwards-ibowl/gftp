@@ -21,8 +21,8 @@ GFTP_PREFIX="$HOME/source/gftp/gftp-install"
 GFTP_SOURCE="$(cd "$(dirname "$0")" && pwd)"
 DEST_DIR="${DEST_DIR:-.}"
 APP_NAME="gFTP"
-BUNDLE_ID="org.gftp.gftp-gtk"
-VERSION="2.9.1b"
+BUNDLE_ID="org.updatez.gftp-gtk"
+VERSION="2.99.1"
 
 # --- Find AppBundleGenerator ---
 # 1. Use environment variable if set
@@ -249,8 +249,26 @@ cat > "$WRAPPER_SCRIPT" << 'EOF'
 BUNDLE_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 export GTK_PATH="$BUNDLE_DIR/Contents/Resources"
 export GDK_PIXBUF_MODULE_FILE="$BUNDLE_DIR/Contents/Resources/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
-export XDG_DATA_DIRS="$BUNDLE_DIR/Contents/Resources/share:$XDG_DATA_DIRS"
 export GFTP_SHARE_DIR="$BUNDLE_DIR/Contents/Resources/share"
+export XDG_CONFIG_HOME="$HOME/Library/Application Support"
+export XDG_DATA_HOME="$HOME/Library/Application Support"
+export XDG_CACHE_HOME="$HOME/Library/Caches"
+export XDG_STATE_HOME="$HOME/Library/Application Support:$BUNDLE_DIR/Contents/Resources/share"
+export XDG_DATA_DIRS="/Library/Application Support"
+export XDG_CONFIG_DIRS="$HOME/Library/Preferences:/Library/Application Support:/Library/Preferences"
+
+# HiDPI and macOS Backend support
+export GDK_BACKEND="quartz"
+export PANGOCAIRO_BACKEND="coretext"
+
+# Fallback scale detection in shell
+if [ -z "$GDK_SCALE" ]; then
+    # Try to detect if we are on a retina display
+    if system_profiler SPDisplaysDataType | grep -q "Retina"; then
+        export GDK_SCALE=2
+        export GDK_DPI_SCALE=1.0
+    fi
+fi
 
 # Set GFTP_CONFIG_DIR to point to bundled resources for default config lookups
 # This will be used by lib/misc.c on macOS if GFTP_CONFIG_DIR is set.
@@ -260,13 +278,15 @@ export GFTP_CONFIG_DIR="$BUNDLE_DIR/Contents/Resources/share/gftp"
 # This mimics the C code's default if GFTP_CONFIG_DIR is not set or ignored.
 USER_HOME=$(eval echo "~") # Safely get home directory
 USER_CONFIG_DIR="$USER_HOME/Library/gFTP"
+
+# Ensure the user's config directory exists
+mkdir -p "$USER_CONFIG_DIR"
+
+
 USER_GFTPRC="$USER_CONFIG_DIR/gftprc"
 BUNDLED_GFTPRC="$BUNDLE_DIR/Contents/Resources/share/gftp/gftprc"
 BUNDLED_BOOKMARKS="$BUNDLE_DIR/Contents/Resources/share/gftp/bookmarks"
 USER_BOOKMARKS="$USER_CONFIG_DIR/bookmarks"
-
-# Ensure the user's config directory exists
-mkdir -p "$USER_CONFIG_DIR"
 
 # Copy default gftprc and bookmarks if they don't exist in the user's config
 if [ ! -f "$USER_GFTPRC" ]; then
@@ -314,15 +334,6 @@ fi
 
 BUNDLE_PATH="$DEST_DIR/$APP_NAME.app"
 echo -e "${GREEN}✓ App bundle created${NC}"
-echo ""
-
-# Enable HiDPI support in Info.plist
-# This is required for macOS to present high-resolution surfaces to GDK.
-if [ -f "$BUNDLE_PATH/Contents/Info.plist" ]; then
-    echo -e "${YELLOW}Enabling HiDPI support in Info.plist...${NC}"
-    plutil -replace NSHighResolutionCapable -bool YES "$BUNDLE_PATH/Contents/Info.plist"
-    echo -e "${GREEN}✓ HiDPI enabled${NC}"
-fi
 echo ""
 
 # Explicitly copy gftp-gtk into the bundle's Resources/bin
@@ -457,3 +468,11 @@ echo "  GLib version: $(pkg-config --modversion glib-2.0)"
 echo "  Build directory: $GFTP_SOURCE/build"
 echo "  Install prefix: $GFTP_PREFIX"
 echo ""
+
+# Final Post-Processing: Ensure HiDPI is enabled in Info.plist
+if [ -f "$BUNDLE_PATH/Contents/Info.plist" ]; then
+    echo -e "${YELLOW}Final check: Enabling HiDPI support in Info.plist...${NC}"
+    plutil -replace NSHighResolutionCapable -bool YES "$BUNDLE_PATH/Contents/Info.plist"
+    echo -e "${GREEN}✓ HiDPI verified and enabled${NC}"
+fi
+

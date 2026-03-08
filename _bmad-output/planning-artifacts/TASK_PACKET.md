@@ -23,7 +23,7 @@ Systematically review and adapt the `lib` and `src` directories to ensure full c
 ## Implementation Checklist
 - [x] Standardize `BASE_CONF_DIR` to `~/Library/gFTP` in `lib/misc.c`.
 - [x] Audit `lib/config_file.c` for any remaining hardcoded `~/.gftp` or `~/.config` references.
-- [ ] Review `src/gtk/` for hardcoded keybindings that conflict with macOS system shortcuts.
+- [x] Review `src/gtk/` for hardcoded keybindings that conflict with macOS system shortcuts.
 - [x] Ensure `gftp-text` (CLI) also respects the `~/Library/gFTP` path on macOS.
 - [x] Verify that first-run resource copying logic works correctly for the new path.
 

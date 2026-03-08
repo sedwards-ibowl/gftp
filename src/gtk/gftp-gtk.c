@@ -455,7 +455,11 @@ CreateMenus (GtkWidget * parent)
   {
     //  name                    stock_id               "label"                  accel             tooltip  callback
     { "FTPMenu",              NULL,                  N_("g_FTP"),             NULL,                NULL, NULL                   },
+#ifdef __APPLE__
+    { "FTPPreferences",       "gtk-preferences",     N_("_Preferences..."),   "<control>comma",    NULL, G_CALLBACK(options_dialog) },
+#else
     { "FTPPreferences",       "gtk-preferences",     N_("_Preferences..."),   NULL,                NULL, G_CALLBACK(options_dialog) },
+#endif
     { "FTPQuit",              "gtk-quit",            N_("_Quit"),             "<control>Q",        NULL, G_CALLBACK(_gftp_menu_exit)  },
 
     { "LocalMenu",            NULL,                  N_("_Local"),            NULL,                NULL, NULL },
@@ -1487,29 +1491,75 @@ static void _setup_window2 (int argc, char **argv)
 
 
 
+#ifdef __APPLE__
+static gboolean
+_gftp_macos_inspector_killer_cb (gpointer data)
+{
+  static int attempts = 0;
+  GList *toplevels, *l;
+  GtkWindow *w;
+  const char *title;
+  gboolean found = FALSE;
+
+  toplevels = gtk_window_list_toplevels ();
+  for (l = toplevels; l; l = l->next)
+    {
+      w = l->data;
+      if (!GTK_IS_WINDOW (w)) continue;
+
+      title = gtk_window_get_title (w);
+      if (title) {
+          g_print("Found window: %s\n", title);
+      }
+
+      /* The GTK Inspector window title starts with "GTK+ Inspector" or "GtkInspector" */
+      if (title && (g_str_has_prefix (title, "GTK+ Inspector") || 
+                    g_str_has_prefix (title, "GtkInspector")))
+        {
+          /* Found it! Move it far offscreen immediately so the user never sees it */
+          gtk_window_move (w, -5000, -5000);
+          /* Destroy the inspector. Testing shows the HiDPI state persists after close. */
+          gtk_widget_destroy (GTK_WIDGET (w));
+          found = TRUE;
+          break;
+        }
+    }
+  g_list_free (toplevels);
+
+  /* Stop if found or if we've tried for ~5 seconds (50 * 100ms) */
+  if (found || attempts++ > 50) {
+      return FALSE;
+  }
+
+  return TRUE; /* Keep polling */
+}
+#endif
+
 int
 main (int argc, char **argv)
 {
-  GtkWidget *ui;
-
 #ifdef __APPLE__
-  /* Attempt to detect HiDPI scale factor and inform GDK via environment variables.
-   * This is done before gtk_init() to ensure GDK reads the correct environment. */
+  /* Force macOS-specific backends and detect HiDPI scale factor. */
+  gdk_set_allowed_backends ("quartz");
+  setenv("GDK_BACKEND", "quartz", 1);
+  setenv("PANGOCAIRO_BACKEND", "coretext", 1);
+
+  /* Enable the interactive debugger. This is the "Magic Bullet" that
+   * forces GDK/Quartz to properly initialize HiDPI surfaces. */
+  setenv("GTK_DEBUG", "interactive", 1);
+
   extern float gftp_macos_get_backing_scale_factor(void);
   float scale = gftp_macos_get_backing_scale_factor();
   if (scale > 1.0f) {
-      char scale_str[4];
-      snprintf(scale_str, sizeof(scale_str), "%d", (int)scale);
-      
-      /* GDK_SCALE handles integer scaling for GDK3 Quartz/X11 backends.
-       * Only set it if the user hasn't already overridden it. */
-      setenv("GDK_SCALE", scale_str, 0); 
-      
-      /* Some versions of GDK3 might also need font scaling (GDK_DPI_SCALE). 
-       * Typically, 1.0 is the correct value when GDK_SCALE is set to 2. */
-      // setenv("GDK_DPI_SCALE", "1.0", 0); 
+      setenv("GDK_SCALE", "2", 1); 
+      setenv("GDK_DPI_SCALE", "1.0", 1); 
   }
+
+  /* Early GDK initialization to "prime" the backend. */
+  gdk_init (&argc, &argv);
 #endif
+
+  GtkWidget *ui;
 
   /* We override the read color functions because we are using a GdkColor 
      structures to store the color. If I put this in lib/config_file.c, then 
@@ -1544,6 +1594,14 @@ main (int argc, char **argv)
                                          string_hash_compare); /* lib/misc.c */
 
   main_window = GTK_WINDOW(gtk_window_new (GTK_WINDOW_TOPLEVEL));
+#ifdef __APPLE__
+  /* Use RGBA visual for better macOS/Quartz integration */
+  GdkScreen *screen = gtk_window_get_screen (main_window);
+  GdkVisual *visual = gdk_screen_get_rgba_visual (screen);
+  if (visual) {
+      gtk_widget_set_visual (GTK_WIDGET(main_window), visual);
+  }
+#endif
   g_signal_connect (G_OBJECT (main_window), "delete_event",
 		      G_CALLBACK (_gftp_try_close), NULL);
   g_signal_connect (G_OBJECT (main_window), "destroy",
@@ -1565,6 +1623,11 @@ main (int argc, char **argv)
   ui = CreateFTPWindows (GTK_WIDGET(main_window));
   gtk_container_add (GTK_CONTAINER (main_window), ui);
   gtk_widget_show (GTK_WIDGET(main_window));
+
+#ifdef __APPLE__
+  /* Start polling for the inspector window so we can hide and kill it */
+  g_timeout_add (100, _gftp_macos_inspector_killer_cb, NULL);
+#endif
 
 #if GTK_CHECK_VERSION(3,0,0)
   // hack for GTK3.. the log window eats all the space for some reason

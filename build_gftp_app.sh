@@ -20,9 +20,11 @@ HOMEBREW_PREFIX=$(brew --prefix)
 GFTP_SOURCE="$(cd "$(dirname "$0")" && pwd)"
 DEST_DIR="${DEST_DIR:-$HOME/Desktop}"
 APP_NAME="gFTP"
-BUNDLE_ID="org.gftp.gftp-gtk"
-VERSION="2.9.1b"
+BUNDLE_ID="org.updatez.gftp-gtk"
+VERSION="2.99.1"
 INSTALL_PREFIX="$GFTP_SOURCE/gftp-install"
+export APP_BUNDLE_GENERATOR="$GFTP_SOURCE/../AppBundleGenerator"
+
 
 # Function to clean up build artifacts
 clean() {

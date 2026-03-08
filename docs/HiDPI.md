@@ -9,7 +9,8 @@ Support is implemented through a combination of programmatic detection and envir
 1.  **Native Scale Detection**: A small Objective-C helper (`src/gtk/macos_hidpi.m`) uses the AppKit `backingScaleFactor` API to determine the display's scale factor (e.g., `2.0` for Retina displays).
 2.  **GDK Configuration**: Before `gtk_init()` is called in `main()`, the application sets the `GDK_SCALE` environment variable based on the detected scale. 
     - Note: GTK3 only supports integer scaling. A scale of `2.0` results in `GDK_SCALE=2`.
-3.  **Override Support**: The programmatic detection uses `setenv(..., 0)`, meaning if you manually export `GDK_SCALE` in your shell or launcher script, your manual value will take precedence.
+3.  **Backend Forcing**: The application explicitly sets `GDK_BACKEND=quartz` and `PANGOCAIRO_BACKEND=coretext` programmatically. This ensures the correct rendering paths are used and that HiDPI settings are respected even when not in debug mode.
+4.  **Override Support**: The programmatic detection uses `setenv(..., 0)`, meaning if you manually export `GDK_SCALE` in your shell or launcher script, your manual value will take precedence.
 
 ## Bundle Requirements
 
