@@ -29,6 +29,11 @@ add_project_arguments(f'-DVERSION="@project_version@"', language:'c')
 # Suppress unused parameter warnings (common in callback functions)
 add_project_arguments('-Wno-unused-parameter', language:'c')
 
+# Enable Objective-C on macOS
+if host_machine.system() == 'darwin'
+    add_languages('objc')
+endif
+
 glib = dependency('glib-2.0', version: '>=2.32', required: true)
 gtk2 = dependency('gtk+-2.0', version: '>=2.14', required: get_option('gtkport') and get_option('gtk2'))
 gtk3 = dependency('gtk+-3.0', version: '>=3.0', required: get_option('gtkport') and get_option('gtk3'))

@@ -725,6 +725,7 @@ time_t parse_time (char *str, char **endpos);
 #define GFTP_PROTOCOL_BOOKMARK    5
 #define GFTP_PROTOCOL_HTTP        6
 #define GFTP_PROTOCOL_HTTPS       7
+#define GFTP_PROTOCOL_WINDOWS     8
 
 #define GFTP_IS_CONNECTED(request) ((request) != NULL && \
                                              ((request)->datafd > 0 || \

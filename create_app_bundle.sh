@@ -45,6 +45,18 @@ warn() {
 }
 
 # --- Prerequisite Check ---
+
+# NOTE: For HiDPI (Retina) support, ensure your application bundle's Info.plist
+# contains the 'NSHighResolutionCapable' key set to true. 
+#
+# <key>NSHighResolutionCapable</key>
+# <true/>
+#
+# While we now programmatically set GDK_SCALE in gftp-gtk, the Info.plist entry
+# is still required for macOS to properly present high-resolution surfaces to GDK.
+# If AppBundleGenerator does not currently support this, you can manually
+# edit the Info.plist after the bundle is created.
+
 # Verify AppBundleGenerator is found
 if [ -z "$APP_BUNDLE_GENERATOR" ]; then
     error "AppBundleGenerator not found. Please ensure the 'AppBundleGenerator' executable is in your PATH or set the APP_BUNDLE_GENERATOR_PATH environment variable. You can download it from: https://github.com/sedwards-ibowl/AppBundleGenerator"

@@ -15,6 +15,10 @@ sources = [
 	'view_dialog.c'
 ]
 
+if host_machine.system() == 'darwin'
+    sources += 'macos_hidpi.m'
+endif
+
 all_sources = sources
 foreach s : libgftp_sources
   all_sources += '../../lib/' + s

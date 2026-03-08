@@ -1492,7 +1492,24 @@ main (int argc, char **argv)
 {
   GtkWidget *ui;
 
-
+#ifdef __APPLE__
+  /* Attempt to detect HiDPI scale factor and inform GDK via environment variables.
+   * This is done before gtk_init() to ensure GDK reads the correct environment. */
+  extern float gftp_macos_get_backing_scale_factor(void);
+  float scale = gftp_macos_get_backing_scale_factor();
+  if (scale > 1.0f) {
+      char scale_str[4];
+      snprintf(scale_str, sizeof(scale_str), "%d", (int)scale);
+      
+      /* GDK_SCALE handles integer scaling for GDK3 Quartz/X11 backends.
+       * Only set it if the user hasn't already overridden it. */
+      setenv("GDK_SCALE", scale_str, 0); 
+      
+      /* Some versions of GDK3 might also need font scaling (GDK_DPI_SCALE). 
+       * Typically, 1.0 is the correct value when GDK_SCALE is set to 2. */
+      // setenv("GDK_DPI_SCALE", "1.0", 0); 
+  }
+#endif
 
   /* We override the read color functions because we are using a GdkColor 
      structures to store the color. If I put this in lib/config_file.c, then 
