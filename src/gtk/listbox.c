@@ -22,7 +22,6 @@
 /***********************************************************************************/
 
 /*
-  https://www.kksou.com/php-gtk2/sample-codes/process-multiple-selections-in-GtkTreeView.php
   https://en.wikibooks.org/wiki/GTK%2B_By_Example/Tree_View/Events
   https://en.wikibooks.org/wiki/GTK%2B_By_Example/Tree_View/Tree_Models#Retrieving_Row_Data
 

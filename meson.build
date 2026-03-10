@@ -10,10 +10,6 @@ if (not get_option('textport')) and (not get_option('gtkport'))
     error('textport and gtkport were both disabled')
 endif
 
-if get_option('gtk3') and get_option('gtk2')
-    error('options gtk3 and gtk2 cannot be enabled at the same time')
-endif
-
 project_version = meson.project_version()
 project_name = meson.project_name()
 install_dir_base = get_option('prefix')
@@ -35,7 +31,8 @@ if host_machine.system() == 'darwin'
 endif
 
 glib = dependency('glib-2.0', version: '>=2.32', required: true)
-gtk2 = dependency('gtk+-2.0', version: '>=2.14', required: get_option('gtkport') and get_option('gtk2'))
+# always try to find GTK3 when building the GTK port; the boolean
+# exists only for backwards-compatibility during the migration period.
 gtk3 = dependency('gtk+-3.0', version: '>=3.0', required: get_option('gtkport') and get_option('gtk3'))
 ssl = dependency('openssl', required: get_option('ssl'))
 
@@ -73,10 +70,8 @@ if get_option('gtkport')
                 gtk_dep += gtkmacintegration
             endif
         endif
-    elif get_option('gtk2')
-        gtk_dep += gtk2
     else
-        error('gtkport cannot be built with both gtk2 and gtk3 options disabled')
+        error('gtkport cannot be built with both gtk3 options disabled')
     endif
 endif
 

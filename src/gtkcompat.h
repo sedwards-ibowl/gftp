@@ -15,34 +15,9 @@
  * The older the GTK version, the more compatible functions are "defined"
  * so it's not wise to use the compiled binary in newer distros or something.
  * 
- * Apps should support gtk2 >= 2.14 / gtk3 >= 3.14
+ * Apps should support gtk3 >= 3.14
  * 
  */
-
-/* 
-special defines:
-	gtkcompat_widget_set_halign_left   (w)
-	gtkcompat_widget_set_halign_center (w)
-	gtkcompat_widget_set_halign_right  (w)
-*/
-
-/*
-GTKCOMPAT_DRAW_SIGNAL (gtk3="draw", gtk2="expose_event")
----------------------
- g_signal_connect (w, GTKCOMPAT_DRAW_SIGNAL, G_CALLBACK (w_draw_cb), NULL);
- gboolean w_draw_cb (GtkWidget *w, gpointer compat, gpointer user_data)
- {
- #if GTK_CHECK_VERSION (3, 0, 0)
-    cairo_t * cr = (cairo_t *) compat;
- #else // gtk2
-    //GdkEventExpose * event = (GdkEventExpose *) compat;
-    cairo_t * cr = gdk_cairo_create (gtk_widget_get_window (w));
- #endif
- #if GTK_MAJOR_VERSION == 2
-    cairo_destroy (cr);
- #endif
- }
-*/
 
 #ifndef __GTKCOMPAT_H
 #define __GTKCOMPAT_H

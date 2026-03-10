@@ -152,7 +152,7 @@ echo "  Configuring with meson..."
 meson setup build \
     --prefix="$GFTP_PREFIX" \
     --buildtype=release \
-    -Dgtk2=false -Dgtk3=true
+    -Dgtk3=true
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Error: meson configuration failed${NC}"

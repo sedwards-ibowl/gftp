@@ -21,7 +21,7 @@ if [ "$1" == "clean" ]; then
 fi
 
 # 1. Configure Meson with a local install prefix
-meson setup "$BUILD_DIR" --wipe -Dgtk3=true -Dgtk2=false --prefix="$INSTALL_PREFIX"
+meson setup "$BUILD_DIR" --wipe -Dgtk3=true --prefix="$INSTALL_PREFIX"
 
 # 2. Build the project
 ninja -C "$BUILD_DIR"

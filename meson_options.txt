@@ -1,5 +1,7 @@
-option('gtk3', type : 'boolean', value : false)
-option('gtk2', type : 'boolean', value : true)
+# historically we supported both GTK2 and GTK3, but GTK2 support
+# is being removed.  default to GTK3 on all platforms; if gtkport is
+# enabled we will error out if GTK3 is disabled later in meson.build.
+option('gtk3', type : 'boolean', value : true)
 option('gtkport', type : 'boolean', value : true)
 option('textport', type: 'boolean', value: true)
 option('gtkwarnings', type: 'boolean', value: false)

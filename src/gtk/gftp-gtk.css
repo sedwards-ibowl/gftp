@@ -1,0 +1,40 @@
+/* gFTP Midnight Commander Aesthetic for GTK3 */
+
+/* Target all TreeViews in gFTP */
+treeview {
+    font-family: monospace;
+    background-color: #ffffff;
+    color: #000000;
+}
+
+/* Dense row layout */
+treeview row {
+    padding: 0px;
+    margin: 0px;
+    min-height: 18px;
+}
+
+/* High-contrast selection */
+treeview:selected {
+    background-color: #0000aa;
+    color: #ffffff;
+}
+
+/* Directory/Executable styling if classes are added */
+.directory {
+    color: #0000aa;
+    font-weight: bold;
+}
+
+.executable {
+    color: #00aa00;
+}
+
+/* Header styling */
+treeview header button {
+    padding: 2px;
+    border-radius: 0px;
+    background-image: none;
+    background-color: #eeeeee;
+    border: 1px solid #cccccc;
+}

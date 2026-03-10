@@ -50,7 +50,6 @@ jobs:
 
         ### Linux
         - **gftp-linux-gtk3** - GTK3 build (recommended for modern systems)
-        - **gftp-linux-gtk2** - GTK2 build (for older systems)
         - **gftp-source.tar.gz** - Source tarball
 
         ## System Requirements
@@ -131,7 +130,7 @@ jobs:
     - name: Configure build
       run: |
         export PKG_CONFIG_PATH="/usr/local/opt/openssl@3/lib/pkgconfig:$PKG_CONFIG_PATH"
-        meson setup build -Dgtk2=false -Dgtk3=true --buildtype=release
+        meson setup build -Dgtk3=true --buildtype=release
 
     - name: Build
       run: ninja -C build
@@ -187,7 +186,7 @@ jobs:
 
     strategy:
       matrix:
-        gtk-version: [gtk2, gtk3]
+        gtk-version: [gtk3]
 
     steps:
     - name: Checkout code
@@ -204,19 +203,11 @@ jobs:
           libssl-dev \
           gettext
 
-        if [ "${{ matrix.gtk-version }}" = "gtk2" ]; then
-          sudo apt-get install -y libgtk2.0-dev
-        else
           sudo apt-get install -y libgtk-3-dev
-        fi
 
     - name: Configure build
       run: |
-        if [ "${{ matrix.gtk-version }}" = "gtk2" ]; then
-          meson setup build -Dgtk2=true -Dgtk3=false --buildtype=release
-        else
-          meson setup build -Dgtk2=false -Dgtk3=true --buildtype=release
-        fi
+          meson setup build -Dgtk3=true --buildtype=release
 
     - name: Build
       run: ninja -C build
