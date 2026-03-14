@@ -384,9 +384,22 @@ rm -rf "$BUNDLE_PATH/Contents/Resources/etc/bash_completion.d/npm"
 echo -e "${GREEN}✓ Unwanted dependencies cleaned${NC}"
 echo ""
 
+# Remove all other unwanted dependencies
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libvtk*.dylib" -exec rm -rf {} +
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "critcl*" -exec rm -rf {} +
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "tcl*" -exec rm -rf {} +
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "tk9.0" -exec rm -rf {} +
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "X11" -exec rm -rf {} +
+
+
+echo -e "${GREEN}✓ Unwanted dependencies cleaned${NC}"
+echo ""
+
 echo -e "${YELLOW}Step 6: Verifying app bundle...${NC}"
 find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "python3.1*"  -exec rm -rf {} +
 find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libpython*.dylib" -exec rm -rf {} +
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "libpython*.dylib" -exec rm -rf {} +
+find "$BUNDLE_PATH/Contents/Resources/lib/" -depth 1 -name "*python*" -exec rm -rf {} +
 gtk-update-icon-cache -f -t gFTP.app/Contents/Resources/share/icons/hicolor
 echo ""
 
@@ -475,4 +488,7 @@ if [ -f "$BUNDLE_PATH/Contents/Info.plist" ]; then
     plutil -replace NSHighResolutionCapable -bool YES "$BUNDLE_PATH/Contents/Info.plist"
     echo -e "${GREEN}✓ HiDPI verified and enabled${NC}"
 fi
+
+# Cleanup 
+rm -fr $DEST_DIR/build
 

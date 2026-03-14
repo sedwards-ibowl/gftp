@@ -92,7 +92,7 @@ Usage:
   Double-click gFTP.app to launch
 
 Configuration:
-  Settings are stored in ~/.config/gftp/
+  Settings are stored in /Users/"ypur-login-name/Library/gFTP
 
 Documentation:
   Visit: https://github.com/sedwards-ibowl/gftp
